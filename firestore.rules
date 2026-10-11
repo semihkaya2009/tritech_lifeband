@@ -6,8 +6,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function adminUserDoc() {
+      return /databases/$(database)/documents/adminUsers/$(request.auth.uid);
+    }
+
     function isSystemAdmin() {
-      return signedIn() && request.auth.token.systemAdmin == true;
+      return signedIn()
+        && (
+          request.auth.token.systemAdmin == true
+          || exists(adminUserDoc())
+        );
     }
 
     function ownsUserDoc(uid) {
@@ -24,26 +32,102 @@ service cloud.firestore {
         && get(staffDoc()).data.status == 'approved';
     }
 
+    function qrDoc(qrId) {
+      return /databases/$(database)/documents/qrCodes/$(qrId);
+    }
+
+    function ownsQr(qr) {
+      return signedIn() && qr.data.ownerUid == request.auth.uid;
+    }
+
+    function ownsQrId(qrId) {
+      return signedIn()
+        && exists(qrDoc(qrId))
+        && get(qrDoc(qrId)).data.ownerUid == request.auth.uid;
+    }
+
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function validAdminQrCreate() {
+      return isSystemAdmin()
+        && request.resource.data.status == 'unclaimed'
+        && request.resource.data.tokenHash is string
+        && request.resource.data.createdAt is timestamp
+        && !request.resource.data.keys().hasAny([
+          'ownerUid',
+          'claimEmail',
+          'claimPhone',
+          'claimedAt'
+        ]);
+    }
+
+    function validQrClaim() {
+      return resource.data.status == 'unclaimed'
+        && request.resource.data.status == 'claimed'
+        && changedOnly(['status', 'claimEmail', 'claimPhone', 'claimedAt'])
+        && request.resource.data.claimEmail is string
+        && request.resource.data.claimPhone is string
+        && request.resource.data.claimedAt is timestamp;
+    }
+
+    function validQrAttach() {
+      return signedIn()
+        && resource.data.status == 'claimed'
+        && request.auth.token.email == resource.data.claimEmail
+        && request.resource.data.status == 'active'
+        && request.resource.data.ownerUid == request.auth.uid
+        && changedOnly(['status', 'ownerUid', 'activatedAt'])
+        && request.resource.data.activatedAt is timestamp;
+    }
+
+    function validQrRevoke() {
+      return (isSystemAdmin() || ownsQr(resource))
+        && resource.data.status in ['claimed', 'active']
+        && request.resource.data.status == 'revoked'
+        && changedOnly(['status', 'revokedAt'])
+        && request.resource.data.revokedAt is timestamp;
+    }
+
+    match /adminUsers/{uid} {
+      allow read, write: if isSystemAdmin();
+    }
+
+    match /users/{uid} {
+      allow read, write: if ownsUserDoc(uid) || isSystemAdmin();
+    }
+
     match /profiles/{uid} {
       allow read, write: if ownsUserDoc(uid) || isSystemAdmin();
-      allow read: if isApprovedStaff();
+    }
+
+    match /visibilitySettings/{uid} {
+      allow read, write: if ownsUserDoc(uid) || isSystemAdmin();
     }
 
     match /publicProfiles/{qrId} {
       allow read: if true;
-      allow create, update, delete: if isSystemAdmin()
-        || (signedIn() && request.resource.data.ownerUserId == request.auth.uid);
+      allow create, update: if isSystemAdmin()
+        || (
+          ownsQrId(qrId)
+          && request.resource.data.ownerUid == request.auth.uid
+        );
+      allow delete: if isSystemAdmin()
+        || (
+          signedIn()
+          && resource.data.ownerUid == request.auth.uid
+        );
     }
 
     match /qrCodes/{qrId} {
       allow read: if isSystemAdmin()
         || isApprovedStaff()
-        || (signedIn() && resource.data.ownerUserId == request.auth.uid);
-      allow create: if signedIn()
-        && request.resource.data.ownerUserId == request.auth.uid
-        && request.resource.data.status == 'active';
-      allow update: if isSystemAdmin()
-        || (signedIn() && resource.data.ownerUserId == request.auth.uid);
+        || ownsQr(resource);
+      allow create: if validAdminQrCreate();
+      allow update: if validQrClaim()
+        || validQrAttach()
+        || validQrRevoke();
       allow delete: if isSystemAdmin();
     }
 
