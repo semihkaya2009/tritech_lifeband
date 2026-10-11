@@ -14,6 +14,12 @@ assert.match(rules, /claimPhone/);
 assert.match(rules, /claimedAt/);
 assert.match(rules, /claimUid/);
 assert.match(rules, /ownerUid/);
+assert.match(rules, /function canReadQr/);
+assert.match(rules, /request\.auth\.token\.email == qr\.data\.claimEmail/);
+assert.match(rules, /allow get: if canGetQr\(resource\)/);
+assert.match(rules, /allow list: if canReadQr\(resource\)/);
+assert.match(rules, /allow get: if ownsUserDoc\(uid\) \|\| isSystemAdmin\(\)/);
+assert.match(rules, /allow list: if isSystemAdmin\(\)/);
 assert.match(rules, /match \/visibilitySettings\/\{uid\}/);
 assert.match(rules, /match \/users\/\{uid\}/);
 

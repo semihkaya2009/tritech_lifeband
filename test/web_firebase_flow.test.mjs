@@ -36,6 +36,17 @@ assert.match(appJs, /publicProfiles/);
 assert.match(appJs, /renderClaimForm/);
 assert.match(appJs, /signInAnonymously/);
 
+const renderQrStart = appJs.indexOf("async function renderFirebaseQrProfile");
+const publicProfileRead = appJs.indexOf('"publicProfiles", qrId', renderQrStart);
+const qrCodeRead = appJs.indexOf('"qrCodes", qrId', renderQrStart);
+assert.ok(renderQrStart > -1);
+assert.ok(publicProfileRead > -1);
+assert.ok(qrCodeRead > -1);
+assert.ok(
+  publicProfileRead < qrCodeRead,
+  "QR public route must read publicProfiles before protected qrCodes"
+);
+
 assert.match(readme, /Email\/Password/);
 assert.match(readme, /adminUsers/);
 assert.match(setup, /--project tritech-lifeband/);

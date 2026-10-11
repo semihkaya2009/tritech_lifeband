@@ -40,6 +40,27 @@ service cloud.firestore {
       return signedIn() && qr.data.ownerUid == request.auth.uid;
     }
 
+    function claimEmailMatchesAuth(qr) {
+      return signedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email == qr.data.claimEmail;
+    }
+
+    function canReadQr(qr) {
+      return isSystemAdmin()
+        || isApprovedStaff()
+        || ownsQr(qr)
+        || (
+          qr.data.status == 'claimed'
+          && claimEmailMatchesAuth(qr)
+        );
+    }
+
+    function canGetQr(qr) {
+      return canReadQr(qr)
+        || qr.data.status == 'unclaimed';
+    }
+
     function ownsQrId(qrId) {
       return signedIn()
         && exists(qrDoc(qrId))
@@ -112,7 +133,9 @@ service cloud.firestore {
     }
 
     match /adminUsers/{uid} {
-      allow read, write: if isSystemAdmin();
+      allow get: if ownsUserDoc(uid) || isSystemAdmin();
+      allow list: if isSystemAdmin();
+      allow write: if isSystemAdmin();
     }
 
     match /users/{uid} {
@@ -148,9 +171,8 @@ service cloud.firestore {
     }
 
     match /qrCodes/{qrId} {
-      allow read: if isSystemAdmin()
-        || isApprovedStaff()
-        || ownsQr(resource);
+      allow get: if canGetQr(resource);
+      allow list: if canReadQr(resource);
       allow create: if validAdminQrCreate();
       allow update: if validQrClaim()
         || validQrAttach()

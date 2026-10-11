@@ -613,6 +613,29 @@ async function renderQrProfile(qrId) {
 async function renderFirebaseQrProfile(qrId) {
   renderLoading("QR bilgisi getiriliyor...");
   try {
+    const profileSnapshot = await firestoreApi.getDoc(
+      firestoreApi.doc(firestoreDb, "publicProfiles", qrId)
+    );
+    if (profileSnapshot.exists()) {
+      const publicProfile = profileSnapshot.data();
+      if (publicProfile.status === "revoked") {
+        renderInactiveQr(qrId);
+        return;
+      }
+
+      const staffMode = new URLSearchParams(window.location.search).get("staff") === "1";
+      const displayFields =
+        publicProfile.displayFields ||
+        compileDisplayFields(
+          publicProfile.fields || {},
+          publicProfile.visibility || {},
+          staffMode ? "staff" : "public"
+        );
+      void logAccess(qrId, staffMode ? "staff" : "public");
+      renderProfileCard(qrId, "Acil Sağlık Profili", displayFields);
+      return;
+    }
+
     const qrRef = firestoreApi.doc(firestoreDb, "qrCodes", qrId);
     const qrSnapshot = await firestoreApi.getDoc(qrRef);
     if (!qrSnapshot.exists()) {
@@ -632,25 +655,7 @@ async function renderFirebaseQrProfile(qrId) {
       return;
     }
 
-    const profileSnapshot = await firestoreApi.getDoc(
-      firestoreApi.doc(firestoreDb, "publicProfiles", qrId)
-    );
-    if (!profileSnapshot.exists()) {
-      renderProfileCard(qrId, "Profil henüz tamamlanmadı.", {});
-      return;
-    }
-
-    const publicProfile = profileSnapshot.data();
-    const staffMode = new URLSearchParams(window.location.search).get("staff") === "1";
-    const displayFields =
-      publicProfile.displayFields ||
-      compileDisplayFields(
-        publicProfile.fields || {},
-        publicProfile.visibility || {},
-        staffMode ? "staff" : "public"
-      );
-    void logAccess(qrId, staffMode ? "staff" : "public");
-    renderProfileCard(qrId, "Acil Sağlık Profili", displayFields);
+    renderProfileCard(qrId, "Profil henüz tamamlanmadı.", {});
   } catch (error) {
     renderProfileCard(qrId, "QR okunamadı", {
       criticalNotes: "Bağlantı veya yetki hatası oluştu. Lütfen tekrar deneyin."
