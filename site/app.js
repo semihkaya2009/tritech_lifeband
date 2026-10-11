@@ -1068,22 +1068,20 @@ function drawQrCanvas(box) {
   if (!url) return;
   const width = Number(box.getAttribute("data-qr-size") || 210);
   box.innerHTML = "";
-  if (!window.QRCode) {
+  if (typeof window.qrcode !== "function") {
     box.textContent = "QR kütüphanesi yüklenemedi.";
     return;
   }
-  window.QRCode.toCanvas(url, { width, margin: 1 }, (error, canvas) => {
-    if (error) {
-      box.textContent = "QR oluşturulamadı.";
-      return;
-    }
-    box.appendChild(canvas);
-  });
+  try {
+    box.appendChild(createQrCanvas(url, width, 1));
+  } catch {
+    box.textContent = "QR oluşturulamadı.";
+  }
 }
 
 async function downloadQrPng(qrId, url) {
   try {
-    const canvas = await createQrCanvas(url, 720);
+    const canvas = createQrCanvas(url, 720, 2);
     const link = document.createElement("a");
     link.download = `lifeband-${safeFileName(qrId)}.png`;
     link.href = canvas.toDataURL("image/png");
@@ -1094,20 +1092,42 @@ async function downloadQrPng(qrId, url) {
   }
 }
 
-function createQrCanvas(url, width) {
-  return new Promise((resolve, reject) => {
-    if (!window.QRCode) {
-      reject(new Error("QRCode library unavailable"));
-      return;
-    }
-    window.QRCode.toCanvas(url, { width, margin: 2 }, (error, canvas) => {
-      if (error) {
-        reject(error);
-        return;
+function createQrCanvas(url, width, margin) {
+  if (typeof window.qrcode !== "function") {
+    throw new Error("QRCode library unavailable");
+  }
+
+  const qr = window.qrcode(0, "M");
+  qr.addData(url);
+  qr.make();
+
+  const moduleCount = qr.getModuleCount();
+  const quietZone = Math.max(0, margin);
+  const cellSize = Math.max(1, Math.floor(width / (moduleCount + quietZone * 2)));
+  const canvasSize = cellSize * (moduleCount + quietZone * 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
+
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvasSize, canvasSize);
+  context.fillStyle = "#000000";
+
+  for (let row = 0; row < moduleCount; row += 1) {
+    for (let col = 0; col < moduleCount; col += 1) {
+      if (qr.isDark(row, col)) {
+        context.fillRect(
+          (col + quietZone) * cellSize,
+          (row + quietZone) * cellSize,
+          cellSize,
+          cellSize
+        );
       }
-      resolve(canvas);
-    });
-  });
+    }
+  }
+
+  return canvas;
 }
 
 function renderInfoItems(fields) {

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const appJs = readFileSync("site/app.js", "utf8");
+const indexHtml = readFileSync("site/index.html", "utf8");
+const qrGenerator = readFileSync("site/qrcode-generator.js", "utf8");
 const readme = readFileSync("site/README.md", "utf8");
 const setup = readFileSync("docs/cloudflare-pages-setup.md", "utf8");
 
@@ -40,6 +42,11 @@ assert.match(appJs, /sessionStorage\.setItem\(LAST_QR_KEY, qrId\)/);
 assert.match(appJs, /data-qr-canvas/);
 assert.match(appJs, /data-action="download-qr"/);
 assert.match(appJs, /function downloadQrPng/);
+assert.match(appJs, /window\.qrcode/);
+assert.match(indexHtml, /src="\/qrcode-generator\.js"/);
+assert.doesNotMatch(indexHtml, /cdn\.jsdelivr/);
+assert.match(qrGenerator, /QR Code Generator for JavaScript/);
+assert.match(qrGenerator, /var qrcode = function/);
 
 const renderQrStart = appJs.indexOf("async function renderFirebaseQrProfile");
 const publicProfileRead = appJs.indexOf('"publicProfiles", qrId', renderQrStart);
