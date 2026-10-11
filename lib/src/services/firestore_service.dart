@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/lifeband_profile.dart';
+import '../utils/visibility_masker.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -161,5 +162,48 @@ class FirestoreService {
     final doc = await _db.collection('visibilitySettings').doc(uid).get();
     if (!doc.exists || doc.data() == null) return null;
     return VisibilitySettings.fromMap(doc.data()!);
+  }
+
+  Future<void> saveProfileAndVisibility({
+    required String uid,
+    required String qrId,
+    required LifeBandProfile profile,
+    required VisibilitySettings visibility,
+  }) async {
+    final qrRef = _db.collection('qrCodes').doc(qrId);
+    final qrSnapshot = await qrRef.get();
+    final qrStatus = qrSnapshot.data()?['status']?.toString();
+    if (qrStatus == 'claimed') {
+      await qrRef.update({
+        'status': 'active',
+        'ownerUid': uid,
+        'activatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    final profileData = profile.toMap()
+      ..['uid'] = uid
+      ..['updatedAt'] = FieldValue.serverTimestamp();
+    final visibilityData = visibility.toMap()
+      ..['uid'] = uid
+      ..['updatedAt'] = FieldValue.serverTimestamp();
+
+    await Future.wait([
+      _db
+          .collection('profiles')
+          .doc(uid)
+          .set(profileData, SetOptions(merge: true)),
+      _db
+          .collection('visibilitySettings')
+          .doc(uid)
+          .set(visibilityData, SetOptions(merge: true)),
+      _db.collection('publicProfiles').doc(qrId).set({
+        'qrId': qrId,
+        'ownerUid': uid,
+        'displayFields': compilePublicFields(profile, visibility),
+        'visibility': visibilityData['fields'],
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)),
+    ]);
   }
 }

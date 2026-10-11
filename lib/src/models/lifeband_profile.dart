@@ -48,10 +48,10 @@ class LifeBandProfile {
     this.updatedAt,
   });
 
-  String get fullName => [firstName, lastName]
-      .where((part) => part.trim().isNotEmpty)
-      .join(' ')
-      .trim();
+  String get fullName => [
+    firstName,
+    lastName,
+  ].where((part) => part.trim().isNotEmpty).join(' ').trim();
 
   Map<String, String> get fieldValues => {
     'fullName': fullName,
@@ -120,6 +120,51 @@ class VisibilitySettings {
     this.template = 'custom',
     this.updatedAt,
   });
+
+  factory VisibilitySettings.minimal(String uid) {
+    return VisibilitySettings(
+      uid: uid,
+      template: 'minimal',
+      fields: const {
+        'bloodType': VisibilityLevel.public,
+        'allergies': VisibilityLevel.public,
+        'emergencyContact': VisibilityLevel.public,
+        'fullName': VisibilityLevel.masked,
+      },
+    );
+  }
+
+  factory VisibilitySettings.emergency(String uid) {
+    return VisibilitySettings(
+      uid: uid,
+      template: 'emergency',
+      fields: const {
+        'fullName': VisibilityLevel.masked,
+        'bloodType': VisibilityLevel.public,
+        'allergies': VisibilityLevel.public,
+        'emergencyContact': VisibilityLevel.public,
+        'chronicDiseases': VisibilityLevel.public,
+        'medications': VisibilityLevel.staff,
+        'notes': VisibilityLevel.staff,
+      },
+    );
+  }
+
+  factory VisibilitySettings.staffFocused(String uid) {
+    return VisibilitySettings(
+      uid: uid,
+      template: 'staffFocused',
+      fields: const {
+        'fullName': VisibilityLevel.masked,
+        'bloodType': VisibilityLevel.public,
+        'allergies': VisibilityLevel.public,
+        'emergencyContact': VisibilityLevel.public,
+        'chronicDiseases': VisibilityLevel.staff,
+        'medications': VisibilityLevel.staff,
+        'notes': VisibilityLevel.staff,
+      },
+    );
+  }
 
   VisibilityLevel levelFor(String key) {
     return fields[key] ?? VisibilityLevel.private;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../models/lifeband_profile.dart';
 import '../widgets/frosted_container.dart';
+import 'profile_edit_screen.dart';
 
 class QrListScreen extends StatelessWidget {
   const QrListScreen({
@@ -81,25 +82,9 @@ class QrListScreen extends StatelessWidget {
               subtitle: Text(_subtitle(qr)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                showModalBottomSheet<void>(
-                  context: context,
-                  builder: (context) => Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Profil düzenleme',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'QR ${qr.qrId} seçildi. Bir sonraki adımda görünürlük ve sağlık profil düzenleme ekranı buraya bağlanacak.',
-                        ),
-                      ],
-                    ),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfileEditScreen(qr: qr)),
                 );
               },
             ),

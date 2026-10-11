@@ -43,6 +43,22 @@ class LifeBandProvider extends ChangeNotifier {
     await _loadForUser(user);
   }
 
+  Future<void> saveProfileAndVisibility({
+    required String qrId,
+    required LifeBandProfile profile,
+    required VisibilitySettings visibility,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _firestore.saveProfileAndVisibility(
+      uid: user.uid,
+      qrId: qrId,
+      profile: profile,
+      visibility: visibility,
+    );
+    await refresh();
+  }
+
   Future<void> _handleAuthChange(User? user) async {
     _user = user;
     if (user == null) {
