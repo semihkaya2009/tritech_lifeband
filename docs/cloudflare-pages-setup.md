@@ -4,8 +4,8 @@
 
 - Mobil uygulama: Android APK
 - Backend: Firebase Auth + Firestore
-- Web/admin: Cloudflare Pages
-- QR formatı: `https://tritech-lifeband.pages.dev/q/LB_randomToken`
+- Web/admin: Cloudflare Workers static assets veya Cloudflare Pages
+- QR formatı: `https://tritech-lifeband.semihkayaa2009.workers.dev/q/LB_randomToken`
 
 QR token içinde TC, telefon, kullanıcı id veya tarih bulunmaz. Token tarayıcıda
 `crypto.getRandomValues` ile üretilen rastgele URL-safe değerdir.
@@ -20,7 +20,7 @@ QR token içinde TC, telefon, kullanıcı id veya tarih bulunmaz. Token tarayıc
 6. Build command alanını boş bırak.
 7. Build output directory alanına `site` yaz.
 8. Production branch olarak `main` seç.
-9. Deploy sonrası çıkan `*.pages.dev` adresini QR alan adı olarak kullan.
+9. Deploy sonrası çıkan `*.workers.dev` veya `*.pages.dev` adresini QR alan adı olarak kullan.
 
 ## Firebase Web App ekleme
 

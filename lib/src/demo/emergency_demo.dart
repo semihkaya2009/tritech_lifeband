@@ -4,7 +4,7 @@ class EmergencyDemo {
   static const token = 'LB_DEMO_20261011';
   static const legacyToken = '1234567890';
   static const demoWebUrl =
-      'https://tritech-lifeband.pages.dev/q/LB_DEMO_20261011';
+      'https://tritech-lifeband.semihkayaa2009.workers.dev/q/LB_DEMO_20261011';
 
   static bool isValidQrToken(String value) {
     return extractQrToken(value) != null;

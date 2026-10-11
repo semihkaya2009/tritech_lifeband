@@ -1,6 +1,6 @@
 const DEMO_QR_ID = "LB_DEMO_20261011";
 const STORAGE_KEY = "lifeband.admin.demo.v1";
-const DEFAULT_ORIGIN = "https://tritech-lifeband.pages.dev";
+const DEFAULT_ORIGIN = "https://tritech-lifeband.semihkayaa2009.workers.dev";
 
 const demoProfile = {
   qrId: DEMO_QR_ID,
