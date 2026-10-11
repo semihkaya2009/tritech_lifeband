@@ -35,6 +35,11 @@ assert.match(appJs, /claimedAt/);
 assert.match(appJs, /publicProfiles/);
 assert.match(appJs, /renderClaimForm/);
 assert.match(appJs, /signInAnonymously/);
+assert.match(appJs, /function selectPreviewQr/);
+assert.match(appJs, /sessionStorage\.setItem\(LAST_QR_KEY, qrId\)/);
+assert.match(appJs, /data-qr-canvas/);
+assert.match(appJs, /data-action="download-qr"/);
+assert.match(appJs, /function downloadQrPng/);
 
 const renderQrStart = appJs.indexOf("async function renderFirebaseQrProfile");
 const publicProfileRead = appJs.indexOf('"publicProfiles", qrId', renderQrStart);

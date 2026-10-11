@@ -2,6 +2,7 @@ import { compileDisplayFields } from "./visibility.js";
 
 const DEMO_QR_ID = "LB_DEMO_20261011";
 const STORAGE_KEY = "lifeband.admin.demo.v1";
+const LAST_QR_KEY = "lifeband.admin.lastQrId";
 const DEFAULT_ORIGIN = "https://tritech-lifeband.semihkayaa2009.workers.dev";
 
 const FIELD_LABELS = {
@@ -352,8 +353,8 @@ async function isCurrentSystemAdmin() {
 function renderAdminPanel(state) {
   const pendingCount = state.staffApplications.filter((x) => x.status === "pending").length;
   const activeQrCount = state.qrCodes.filter((x) => x.status === "active").length;
-  const latestQr = state.qrCodes[0] || defaultState.qrCodes[0];
-  const demoUrl = publicUrl(latestQr.qrId);
+  const previewQr = selectPreviewQr(state);
+  const previewUrl = publicUrl(previewQr.qrId);
 
   app.innerHTML = `
     <div class="app-shell">
@@ -367,7 +368,7 @@ function renderAdminPanel(state) {
         </div>
         <nav class="top-actions" aria-label="Ana menü">
           <a class="button secondary" href="/">Ana sayfa</a>
-          <a class="button secondary" href="/q/${encodeURIComponent(latestQr.qrId)}">Son QR</a>
+          <a class="button secondary" href="/q/${encodeURIComponent(previewQr.qrId)}">Son QR</a>
           <a class="button" href="/admin">Admin</a>
         </nav>
       </header>
@@ -382,7 +383,7 @@ function renderAdminPanel(state) {
             </p>
             <div class="hero-actions">
               <button class="button" id="generateQr">Yeni QR oluştur</button>
-              <a class="button secondary" href="/q/${encodeURIComponent(latestQr.qrId)}">Son QR profili</a>
+              <a class="button secondary" href="/q/${encodeURIComponent(previewQr.qrId)}">Son QR profili</a>
             </div>
             <div class="kpi-grid">
               <div class="kpi"><strong>${activeQrCount}</strong><span>aktif QR</span></div>
@@ -400,11 +401,12 @@ function renderAdminPanel(state) {
                 </div>
                 <span class="badge ${firebaseReady ? "ok" : "warn"}">${firebaseReady ? "Firebase hazır" : "Demo mod"}</span>
               </div>
-              <div class="qr-box" id="qrCanvas" data-url="${escapeAttr(demoUrl)}"></div>
+              <div class="qr-box" id="qrCanvas" data-qr-canvas data-qr-url="${escapeAttr(previewUrl)}"></div>
             </div>
-            <div class="qr-link" id="qrUrl">${escapeHtml(demoUrl)}</div>
+            <div class="qr-link" id="qrUrl">${escapeHtml(previewUrl)}</div>
             <div class="top-actions">
               <button class="button secondary" id="copyQr">Linki kopyala</button>
+              <button class="button secondary" data-action="download-qr" data-id="${escapeAttr(previewQr.qrId)}" data-url="${escapeAttr(previewUrl)}">PNG indir</button>
               <button class="button ghost" id="printQr">Yazdır</button>
             </div>
           </aside>
@@ -424,7 +426,7 @@ function renderAdminPanel(state) {
     </div>
   `;
 
-  drawQr(demoUrl);
+  drawQrCanvases();
   bindAdminEvents();
   document.title = "LifeBand Admin Panel";
 }
@@ -480,19 +482,30 @@ function normalizeQrRecord(id, data) {
 
 function renderQrManager(state) {
   const rows = state.qrCodes
-    .map(
-      (qr) => `
+    .map((qr) => {
+      const qrUrl = qr.url || publicUrl(qr.qrId);
+      return `
       <tr>
-        <td><strong>${escapeHtml(qr.qrId)}</strong><br><span class="muted small">${escapeHtml(qr.owner || qr.claimEmail || "Henüz sahiplenilmedi")}</span></td>
+        <td>
+          <div class="qr-record">
+            <div class="qr-mini" data-qr-canvas data-qr-size="76" data-qr-url="${escapeAttr(qrUrl)}"></div>
+            <div>
+              <strong>${escapeHtml(qr.qrId)}</strong><br>
+              <span class="muted small">${escapeHtml(qr.owner || qr.claimEmail || "Henüz sahiplenilmedi")}</span><br>
+              <span class="muted small">${escapeHtml(qrUrl)}</span>
+            </div>
+          </div>
+        </td>
         <td>${formatDate(qr.createdAt)}</td>
         <td><span class="badge ${statusClass(qr.status)}">${statusLabel(qr.status)}</span></td>
         <td>${qr.scanCount || 0}</td>
         <td class="actions-cell">
           <a class="icon-button" title="Profili aç" href="/q/${encodeURIComponent(qr.qrId)}">↗</a>
+          <button class="icon-button wide" title="QR PNG indir" data-action="download-qr" data-id="${escapeAttr(qr.qrId)}" data-url="${escapeAttr(qrUrl)}">PNG</button>
           <button class="icon-button danger" title="QR iptal et" data-action="revoke-qr" data-id="${escapeAttr(qr.qrId)}">×</button>
         </td>
-      </tr>`
-    )
+      </tr>`;
+    })
     .join("");
 
   return `
@@ -876,6 +889,7 @@ function bindAdminEvents() {
         createdAt: firestoreApi.serverTimestamp(),
         scanCount: 0
       });
+      rememberLastQr(qrId);
       toast("Sahipsiz güvenli QR oluşturuldu.");
       await renderAdmin();
       return;
@@ -893,9 +907,18 @@ function bindAdminEvents() {
       scanCount: 0,
       url: publicUrl(qrId)
     });
+    rememberLastQr(qrId);
     saveState(state);
     toast("Güvenli QR oluşturuldu.");
     await renderAdmin();
+  });
+
+  document.querySelectorAll("[data-action='download-qr']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = button.getAttribute("data-id") || "lifeband-qr";
+      const url = button.getAttribute("data-url") || publicUrl(id);
+      await downloadQrPng(id, url);
+    });
   });
 
   document.querySelectorAll("[data-action='revoke-qr']").forEach((button) => {
@@ -962,6 +985,26 @@ function saveState(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function selectPreviewQr(state) {
+  const fallback = state.qrCodes[0] || defaultState.qrCodes[0];
+  try {
+    const lastQrId = sessionStorage.getItem(LAST_QR_KEY);
+    const matched = state.qrCodes.find((qr) => qr.qrId === lastQrId);
+    if (matched) return matched;
+  } catch {
+    // Storage can be unavailable in private or restricted contexts.
+  }
+  return fallback;
+}
+
+function rememberLastQr(qrId) {
+  try {
+    sessionStorage.setItem(LAST_QR_KEY, qrId);
+  } catch {
+    // The QR still exists even when browser storage is unavailable.
+  }
+}
+
 function addAccessLog(qrId, mode) {
   const state = loadState();
   const active = state.qrCodes.find((x) => x.qrId === qrId);
@@ -1014,20 +1057,56 @@ async function sha256Hex(value) {
     .join("");
 }
 
-function drawQr(url) {
-  const box = document.querySelector("#qrCanvas");
-  if (!box) return;
+function drawQrCanvases() {
+  document.querySelectorAll("[data-qr-canvas]").forEach((box) => {
+    drawQrCanvas(box);
+  });
+}
+
+function drawQrCanvas(box) {
+  const url = box.getAttribute("data-qr-url");
+  if (!url) return;
+  const width = Number(box.getAttribute("data-qr-size") || 210);
   box.innerHTML = "";
   if (!window.QRCode) {
     box.textContent = "QR kütüphanesi yüklenemedi.";
     return;
   }
-  window.QRCode.toCanvas(url, { width: 210, margin: 1 }, (error, canvas) => {
+  window.QRCode.toCanvas(url, { width, margin: 1 }, (error, canvas) => {
     if (error) {
       box.textContent = "QR oluşturulamadı.";
       return;
     }
     box.appendChild(canvas);
+  });
+}
+
+async function downloadQrPng(qrId, url) {
+  try {
+    const canvas = await createQrCanvas(url, 720);
+    const link = document.createElement("a");
+    link.download = `lifeband-${safeFileName(qrId)}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    toast("QR PNG indiriliyor.");
+  } catch {
+    toast("QR indirilemedi. Linki kopyalayıp tekrar dene.");
+  }
+}
+
+function createQrCanvas(url, width) {
+  return new Promise((resolve, reject) => {
+    if (!window.QRCode) {
+      reject(new Error("QRCode library unavailable"));
+      return;
+    }
+    window.QRCode.toCanvas(url, { width, margin: 2 }, (error, canvas) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(canvas);
+    });
   });
 }
 
@@ -1095,6 +1174,13 @@ function normalizeEmail(value) {
 
 function cleanText(value) {
   return String(value || "").trim();
+}
+
+function safeFileName(value) {
+  return String(value || "qr")
+    .replace(/[^a-z0-9_-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "qr";
 }
 
 function adminAuthError(error) {

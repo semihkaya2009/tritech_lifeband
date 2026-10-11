@@ -400,6 +400,34 @@ h1 {
   text-transform: uppercase;
 }
 
+.qr-record {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 260px;
+}
+
+.qr-mini {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  min-height: 84px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.qr-mini canvas,
+.qr-mini img {
+  width: 76px;
+  height: 76px;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -442,6 +470,13 @@ h1 {
   color: var(--text);
   background: #e8eef5;
   font-weight: 900;
+}
+
+.icon-button.wide {
+  width: auto;
+  min-width: 48px;
+  padding: 0 9px;
+  font-size: 12px;
 }
 
 .icon-button.ok {
