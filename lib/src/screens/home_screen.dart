@@ -1,52 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'qr_scan_screen.dart';
 
-import '../providers/device_provider.dart';
-import '../models/device.dart';
-import '../widgets/device_tile.dart';
-import '../services/firestore_service.dart';
+import '../app_theme.dart';
+import '../providers/lifeband_provider.dart';
 import '../services/auth_service.dart';
-import '../widgets/glass_app_bar.dart';
 import '../widgets/animated_background.dart';
 import '../widgets/frosted_container.dart';
-import '../app_theme.dart';
-import 'device_detail_screen.dart';
+import '../widgets/glass_app_bar.dart';
+import 'qr_list_screen.dart';
+import 'qr_scan_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  late ScaffoldMessengerState _scaffoldMessenger;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _scaffoldMessenger = ScaffoldMessenger.of(context);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final devices = context.watch<DeviceProvider>().devices;
+    final provider = context.watch<LifeBandProvider>();
+    final user = provider.user;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: 'LifeBand'),
+      appBar: GlassAppBar(
+        title: 'LifeBand',
+        actions: [
+          IconButton(
+            tooltip: 'Çıkış yap',
+            onPressed: () => context.read<AuthService>().signOut(),
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const QrScanScreen()),
+          ).then((_) => provider.refresh());
+        },
+        icon: const Icon(Icons.qr_code_scanner),
+        label: const Text('QR Tara'),
+      ),
       body: AnimatedBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
-
-                // Welcome section - Teknolojik spor tarzı
                 FrostedContainer(
                   padding: const EdgeInsets.all(24),
                   borderRadius: 20,
@@ -55,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     end: Alignment.bottomRight,
                     colors: [
                       AppTheme.petroGreen.withValues(alpha: 0.35),
-                      AppTheme.amberPrimary.withValues(alpha: 0.2),
+                      AppTheme.amberPrimary.withValues(alpha: 0.18),
                     ],
                   ),
                   child: Row(
@@ -65,13 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: BoxDecoration(
                           gradient: AppTheme.petroGradient,
                           borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.petroGreen.withValues(alpha: 0.4),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
                         ),
                         child: const Icon(
                           Icons.health_and_safety,
@@ -79,18 +73,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           size: 32,
                         ),
                       ),
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 18),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Acil Sağlık Profili',
+                              'Acil Sağlık Profillerim',
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'QR bilekliği okutun, kritik bilgileri saniyeler içinde görün',
+                              user?.email ?? 'LifeBand kullanıcısı',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -99,384 +93,78 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // Statistics cards - Bölümlenmiş metrik kartları
-                Row(
-                  children: [
-                    Expanded(
-                      child: FrostedContainer(
-                        padding: const EdgeInsets.all(20),
-                        borderRadius: 16,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppTheme.amberPrimary.withValues(alpha: 0.15),
-                            AppTheme.amberDark.withValues(alpha: 0.05),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.amberGradient,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.amberPrimary.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.devices,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              '${devices.length}',
-                              style: Theme.of(context).textTheme.headlineMedium,
-                            ),
-                            Text(
-                              'Acil Profil',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: FrostedContainer(
-                        padding: const EdgeInsets.all(20),
-                        borderRadius: 16,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppTheme.petroGreen.withValues(alpha: 0.15),
-                            AppTheme.petroMintGreen.withValues(alpha: 0.05),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.petroGradient,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.petroGreen.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.show_chart,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Demo',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(fontSize: 20),
-                            ),
-                            Text(
-                              'Hazır',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-
-                // Devices section header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'LifeBand Profilleri',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    GestureDetector(
-                      onTap: () async {
-                        final res = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const QrScanScreen(),
-                          ),
-                        );
-                        if (!context.mounted) return;
-                        if (res is Device) {
-                          context.read<DeviceProvider>().addLocalDemoDevice(
-                            res,
-                          );
-                          _scaffoldMessenger.showSnackBar(
-                            const SnackBar(
-                              content: Text('Demo acil profil açıldı'),
-                              backgroundColor: AppTheme.petroGreen,
-                            ),
-                          );
-                        } else if (res == true) {
-                          _scaffoldMessenger.showSnackBar(
-                            const SnackBar(
-                              content: Text('LifeBand profili eklendi'),
-                              backgroundColor: AppTheme.petroGreen,
-                            ),
-                          );
-                        } else if (res == false) {
-                          _scaffoldMessenger.showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'QR token Firestore içinde bulunamadı. Demo QR: 1234567890',
-                              ),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.amberGradient,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppTheme.amberPrimary.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.amberPrimary.withValues(
-                                alpha: 0.2,
-                              ),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
                 const SizedBox(height: 20),
-
-                // Devices list
-                devices.isEmpty
-                    ? FrostedContainer(
-                        padding: const EdgeInsets.all(40),
-                        borderRadius: 20,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppTheme.petroGreen.withValues(alpha: 0.2),
-                                    AppTheme.petroMintGreen.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.device_hub_outlined,
-                                size: 48,
-                                color: AppTheme.petroMintGreen,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'Henüz acil profil yok',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'QR tarayın veya tarama ekranından demo profili açın',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
-                    : AnimationLimiter(
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: devices.length,
-                          itemBuilder: (context, index) {
-                            final device = devices[index];
-                            return AnimationConfiguration.staggeredList(
-                              position: index,
-                              duration: const Duration(milliseconds: 375),
-                              child: SlideAnimation(
-                                verticalOffset: 50.0,
-                                child: FadeInAnimation(
-                                  child: Dismissible(
-                                    key: ValueKey(device.id),
-                                    direction: DismissDirection.endToStart,
-                                    background: Container(
-                                      alignment: Alignment.centerRight,
-                                      padding: const EdgeInsets.only(right: 20),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.red.withValues(alpha: 0.7),
-                                            Colors.red.withValues(alpha: 0.9),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: const Icon(
-                                        Icons.delete_forever,
-                                        color: Colors.white,
-                                        size: 28,
-                                      ),
-                                    ),
-                                    confirmDismiss: (direction) async {
-                                      final res = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: AppTheme.darkCard,
-                                          title: Text(
-                                            'Profili kaldır',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleMedium,
-                                          ),
-                                          content: Text(
-                                            'Bu profili listeden kaldırmak istediğinize emin misiniz?',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium,
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, false),
-                                              child: Text(
-                                                'İptal',
-                                                style: TextStyle(
-                                                  color: AppTheme.textLight,
-                                                ),
-                                              ),
-                                            ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, true),
-                                              child: const Text(
-                                                'Sil',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      return res == true;
-                                    },
-                                    onDismissed: (direction) async {
-                                      try {
-                                        final auth = context
-                                            .read<AuthService>();
-                                        final firestore = context
-                                            .read<FirestoreService>();
-                                        final deviceProvider = context
-                                            .read<DeviceProvider>();
-
-                                        final uid = auth.currentUser?.uid;
-                                        if (uid == null) {
-                                          _scaffoldMessenger.showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                              'Kullanıcı oturumu yok',
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                          return;
-                                        }
-
-                                        await firestore.unenrollDeviceForUser(
-                                          uid,
-                                          device.id,
-                                        );
-
-                                        deviceProvider.removeById(device.id);
-
-                                        if (!mounted) return;
-                                        _scaffoldMessenger.showSnackBar(
-                                          SnackBar(
-                                            content: const Text(
-                                              'Profil kaldırıldı',
-                                            ),
-                                            backgroundColor:
-                                                AppTheme.petroGreen,
-                                          ),
-                                        );
-                                      } catch (e) {
-                                        if (!mounted) return;
-                                        _scaffoldMessenger.showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Silme başarısız'),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: DeviceTile(
-                                      device: device,
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => DeviceDetailScreen(
-                                            deviceId: device.id,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MetricCard(
+                        icon: Icons.qr_code_2,
+                        value: '${provider.qrCodes.length}',
+                        label: 'Bağlı QR',
                       ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _MetricCard(
+                        icon: Icons.verified_user,
+                        value: provider.profile == null ? 'Eksik' : 'Hazır',
+                        label: 'Profil',
+                      ),
+                    ),
+                  ],
+                ),
+                if (provider.errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    provider.errorMessage!,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Text(
+                  'QR kayıtlarım',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 14),
+                QrListScreen(
+                  qrCodes: provider.qrCodes,
+                  loading: provider.loading,
+                  onRefresh: provider.refresh,
+                ),
+                const SizedBox(height: 96),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return FrostedContainer(
+      padding: const EdgeInsets.all(18),
+      borderRadius: 16,
+      child: Column(
+        children: [
+          Icon(icon, color: AppTheme.petroMintGreen, size: 26),
+          const SizedBox(height: 10),
+          Text(value, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ],
       ),
     );
   }

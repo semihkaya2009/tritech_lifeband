@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/lifeband_profile.dart';
+
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -102,5 +104,62 @@ class FirestoreService {
       }
     }
     return results;
+  }
+
+  Future<List<QrCodeRecord>> qrCodesForUser(String uid, String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    final records = <String, QrCodeRecord>{};
+
+    final owned = await _db
+        .collection('qrCodes')
+        .where('ownerUid', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .get();
+    for (final doc in owned.docs) {
+      records[doc.id] = QrCodeRecord.fromMap({...doc.data(), 'id': doc.id});
+    }
+
+    if (normalizedEmail.isNotEmpty) {
+      final claimed = await _db
+          .collection('qrCodes')
+          .where('claimEmail', isEqualTo: normalizedEmail)
+          .where('status', isEqualTo: 'claimed')
+          .get();
+      for (final doc in claimed.docs) {
+        records[doc.id] = QrCodeRecord.fromMap({...doc.data(), 'id': doc.id});
+      }
+    }
+
+    final list = records.values.toList()
+      ..sort((a, b) {
+        final left = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final right = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return right.compareTo(left);
+      });
+    return list;
+  }
+
+  Future<void> attachClaimedQrToUser(QrCodeRecord qr, String uid) async {
+    await _db.collection('qrCodes').doc(qr.qrId).update({
+      'status': 'active',
+      'ownerUid': uid,
+      'activatedAt': FieldValue.serverTimestamp(),
+    });
+    await _db.collection('publicProfiles').doc(qr.qrId).set({
+      'ownerUid': uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<LifeBandProfile?> profileForUser(String uid) async {
+    final doc = await _db.collection('profiles').doc(uid).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return LifeBandProfile.fromMap(doc.data()!);
+  }
+
+  Future<VisibilitySettings?> visibilitySettingsForUser(String uid) async {
+    final doc = await _db.collection('visibilitySettings').doc(uid).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return VisibilitySettings.fromMap(doc.data()!);
   }
 }
