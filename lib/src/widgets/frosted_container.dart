@@ -36,14 +36,9 @@ class FrostedContainer extends StatelessWidget {
             boxShadow ??
             [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: AppTheme.petroGreen.withValues(alpha: 0.12),
-                blurRadius: 6,
-                offset: const Offset(0, -2),
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
       ),
@@ -60,18 +55,14 @@ class FrostedContainer extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppTheme.darkCard.withValues(alpha: 0.84),
-                      AppTheme.petroGreen.withValues(alpha: 0.24),
+                      AppTheme.darkCard.withValues(alpha: 0.94),
+                      AppTheme.petroGreen.withValues(alpha: 0.08),
                     ],
                   ),
               color: gradient == null ? backgroundColor : null,
               borderRadius: BorderRadius.circular(borderRadius),
               border:
-                  border ??
-                  Border.all(
-                    color: AppTheme.amberPrimary.withValues(alpha: 0.18),
-                    width: 1,
-                  ),
+                  border ?? Border.all(color: AppTheme.darkBorder, width: 1),
             ),
             child: child,
           ),

@@ -74,47 +74,7 @@ class _AnimatedBackgroundState extends State<AnimatedBackground>
                 ],
               ),
             ),
-            child: Stack(
-              children: [
-                // Animated amber accent circle
-                Positioned(
-                  top: -100 + (_animation1.value * 20),
-                  right: -100 + (_animation2.value * 15),
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppTheme.amberPrimary.withValues(alpha: 0.12),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // Animated green accent circle
-                Positioned(
-                  bottom: -50 + (_animation2.value * 15),
-                  left: -50 + (_animation1.value * 10),
-                  child: Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppTheme.petroMintGreen.withValues(alpha: 0.08),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                widget.child,
-              ],
-            ),
+            child: Stack(children: [widget.child]),
           ),
         );
       },

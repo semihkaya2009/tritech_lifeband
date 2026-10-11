@@ -1,28 +1,25 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // TRI TECH logo paleti
-  // Siyah zemin + beyaz tipografi + elektrik mavi/cyan vurgu
-  static const Color amberPrimary = Color(0xFF49A8F5);
-  static const Color amberLight = Color(0xFF74C3FF);
-  static const Color amberDark = Color(0xFF1E7ED6);
+  static const Color amberPrimary = Color(0xFF0F766E);
+  static const Color amberLight = Color(0xFF14B8A6);
+  static const Color amberDark = Color(0xFF115E59);
 
-  static const Color petroGreen = Color(0xFF0F6DCC);
-  static const Color petroLightGreen = Color(0xFF2F8EF0);
-  static const Color petroMintGreen = Color(0xFF8BD8FF);
+  static const Color petroGreen = Color(0xFF2563EB);
+  static const Color petroLightGreen = Color(0xFF3B82F6);
+  static const Color petroMintGreen = Color(0xFF0F766E);
 
-  static const Color darkBg = Color(0xFF05070B);
-  static const Color darkCard = Color(0xFF0E1622);
-  static const Color darkBorder = Color(0xFF223246);
+  static const Color darkBg = Color(0xFFF6F8FB);
+  static const Color darkCard = Color(0xFFFFFFFF);
+  static const Color darkBorder = Color(0xFFD9E2EC);
 
-  static const Color neutralWhite = Color(0xFFF7FBFF);
-  static const Color textDark = Color(0xFF0A1018);
-  static const Color textLight = Color(0xFF9CB8D3);
+  static const Color neutralWhite = Color(0xFFFFFFFF);
+  static const Color textDark = Color(0xFF14213D);
+  static const Color textLight = Color(0xFF64748B);
 
-  // Arka plan gradyentleri
   static const List<Color> backgroundGradient = [
-    Color(0xFF05070B),
-    Color(0xFF0E1622),
+    Color(0xFFF8FAFC),
+    Color(0xFFF6F8FB),
   ];
 
   static final ThemeData lightTheme = ThemeData(
@@ -30,7 +27,7 @@ class AppTheme {
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
       seedColor: amberPrimary,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       primary: amberPrimary,
       secondary: petroGreen,
       surface: darkCard,
@@ -41,41 +38,41 @@ class AppTheme {
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: amberPrimary,
-        letterSpacing: 0.5,
+        letterSpacing: 0,
       ),
       headlineMedium: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 28,
         fontWeight: FontWeight.w600,
-        color: neutralWhite,
-        letterSpacing: 0.3,
+        color: textDark,
+        letterSpacing: 0,
       ),
       headlineSmall: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 22,
         fontWeight: FontWeight.w600,
-        color: neutralWhite,
-        letterSpacing: 0.2,
+        color: textDark,
+        letterSpacing: 0,
       ),
       titleLarge: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 20,
         fontWeight: FontWeight.w600,
-        color: amberPrimary,
-        letterSpacing: 0.3,
+        color: textDark,
+        letterSpacing: 0,
       ),
       titleMedium: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: neutralWhite,
-        letterSpacing: 0.2,
+        color: textDark,
+        letterSpacing: 0,
       ),
       bodyLarge: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 16,
         fontWeight: FontWeight.w400,
-        color: textLight,
+        color: textDark,
       ),
       bodyMedium: const TextStyle(
         fontFamily: 'Roboto',
@@ -87,20 +84,20 @@ class AppTheme {
         fontFamily: 'Roboto',
         fontSize: 12,
         fontWeight: FontWeight.w400,
-        color: Color(0xFF9CA3AF),
+        color: Color(0xFF64748B),
       ),
     ),
     appBarTheme: AppBarTheme(
       elevation: 0,
-      backgroundColor: darkCard.withValues(alpha: 0.8),
-      foregroundColor: neutralWhite,
+      backgroundColor: darkCard.withValues(alpha: 0.92),
+      foregroundColor: textDark,
       centerTitle: true,
       titleTextStyle: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 20,
         fontWeight: FontWeight.w600,
-        color: amberPrimary,
-        letterSpacing: 0.3,
+        color: textDark,
+        letterSpacing: 0,
       ),
     ),
     cardTheme: CardThemeData(
@@ -112,19 +109,19 @@ class AppTheme {
       style: ElevatedButton.styleFrom(
         elevation: 0,
         backgroundColor: amberPrimary,
-        foregroundColor: textDark,
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
         textStyle: const TextStyle(
           fontFamily: 'Roboto',
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
+          letterSpacing: 0,
         ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
-      fillColor: darkBg.withValues(alpha: 0.5),
+      fillColor: Colors.white,
       filled: true,
       labelStyle: const TextStyle(fontFamily: 'Roboto', color: textLight),
       hintStyle: const TextStyle(

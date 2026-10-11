@@ -17,14 +17,7 @@ class DeviceTile extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(20),
         borderRadius: 16,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.amberPrimary.withValues(alpha: 0.1),
-            AppTheme.petroGreen.withValues(alpha: 0.05),
-          ],
-        ),
+        backgroundColor: Colors.white,
         child: Row(
           children: [
             Container(
@@ -32,12 +25,12 @@ class DeviceTile extends StatelessWidget {
               height: 64,
               decoration: BoxDecoration(
                 gradient: AppTheme.mixedGradient,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.amberPrimary.withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
+                    color: AppTheme.amberPrimary.withValues(alpha: 0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -96,7 +89,7 @@ class DeviceTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.petroMintGreen,
+                        color: AppTheme.amberDark,
                       ),
                     ),
                   ),

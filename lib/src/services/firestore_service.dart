@@ -140,6 +140,12 @@ class FirestoreService {
     return list;
   }
 
+  Future<QrCodeRecord?> qrCodeById(String qrId) async {
+    final doc = await _db.collection('qrCodes').doc(qrId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return QrCodeRecord.fromMap({...doc.data()!, 'id': doc.id});
+  }
+
   Future<void> attachClaimedQrToUser(QrCodeRecord qr, String uid) async {
     await _db.collection('qrCodes').doc(qr.qrId).update({
       'status': 'active',
