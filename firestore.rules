@@ -59,14 +59,17 @@ service cloud.firestore {
           'ownerUid',
           'claimEmail',
           'claimPhone',
+          'claimUid',
           'claimedAt'
         ]);
     }
 
     function validQrClaim() {
-      return resource.data.status == 'unclaimed'
+      return signedIn()
+        && resource.data.status == 'unclaimed'
         && request.resource.data.status == 'claimed'
-        && changedOnly(['status', 'claimEmail', 'claimPhone', 'claimedAt'])
+        && request.resource.data.claimUid == request.auth.uid
+        && changedOnly(['status', 'claimEmail', 'claimPhone', 'claimUid', 'claimedAt'])
         && request.resource.data.claimEmail is string
         && request.resource.data.claimPhone is string
         && request.resource.data.claimedAt is timestamp;
@@ -90,6 +93,24 @@ service cloud.firestore {
         && request.resource.data.revokedAt is timestamp;
     }
 
+    function validClaimPublicProfileCreate(qrId) {
+      return signedIn()
+        && exists(qrDoc(qrId))
+        && get(qrDoc(qrId)).data.status == 'claimed'
+        && get(qrDoc(qrId)).data.claimUid == request.auth.uid
+        && request.resource.data.qrId == qrId
+        && request.resource.data.claimUid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'qrId',
+          'claimUid',
+          'status',
+          'displayFields',
+          'visibility',
+          'createdAt',
+          'updatedAt'
+        ]);
+    }
+
     match /adminUsers/{uid} {
       allow read, write: if isSystemAdmin();
     }
@@ -108,7 +129,13 @@ service cloud.firestore {
 
     match /publicProfiles/{qrId} {
       allow read: if true;
-      allow create, update: if isSystemAdmin()
+      allow create: if isSystemAdmin()
+        || validClaimPublicProfileCreate(qrId)
+        || (
+          ownsQrId(qrId)
+          && request.resource.data.ownerUid == request.auth.uid
+        );
+      allow update: if isSystemAdmin()
         || (
           ownsQrId(qrId)
           && request.resource.data.ownerUid == request.auth.uid

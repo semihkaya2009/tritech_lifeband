@@ -49,7 +49,7 @@ QR durumu dört aşamalıdır:
   `claimPhone` ve `claimedAt` bulunmaz.
 - `claimed`: QR ilk okutulduğunda kullanıcı telefon, mail ve başvuru bilgilerini
   girer. Bu kayıt sadece `status`, `claimEmail`, `claimPhone` ve `claimedAt`
-  alanlarını değiştirebilir.
+  alanlarını ve anonymous Auth kullanıcısına ait `claimUid` değerini değiştirebilir.
 - `active`: Kullanıcı aynı mail adresiyle Firebase Auth üzerinden giriş yapınca
   QR `ownerUid` ile hesabına bağlanır.
 - `revoked`: QR yalnızca sahibi veya sistem admini tarafından iptal edilir.
@@ -64,4 +64,5 @@ Tam sağlık profili için Firebase Auth ve onaylı sağlık çalışanı rolü 
 Admin işlemleri için `systemAdmin: true` custom claim zorunlu olmalıdır.
 `profiles` ve `visibilitySettings` belgelerini yalnızca kullanıcı sahibi veya
 sistem admini okuyup yazabilir. `publicProfiles` herkese okunur, ancak sadece
-ilgili QR sahibi veya sistem admini tarafından yazılır.
+ilgili QR sahibi, sistem admini veya ilk claim işlemini yapan `claimUid`
+tarafından ilk kez oluşturulur.

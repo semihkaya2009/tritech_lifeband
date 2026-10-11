@@ -40,8 +40,9 @@ Bu repoda `firestore.rules` dosyası eklendi. Firebase CLI kurulu ve giriş
 yapılmışsa kuralları şu şekilde yayınlayabilirsin:
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --project tritech-lifeband --only firestore:rules,firestore:indexes
 ```
 
-Gerçek admin onayı için daha sonra sistem admin kullanıcılarına Firebase custom
-claim olarak `systemAdmin: true` verilmeli.
+Authentication ekranında Email/Password ve Anonymous provider'larını aç. Sistem
+admin hesabını oluşturduktan sonra bu kullanıcının UID'si ile `adminUsers/{uid}`
+dokümanı ekle. Alternatif olarak custom claim `systemAdmin: true` verilebilir.

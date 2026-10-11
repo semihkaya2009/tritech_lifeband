@@ -6,3 +6,5 @@ window.LIFEBAND_FIREBASE_CONFIG = {
   messagingSenderId: "307541360519",
   appId: "FIREBASE_WEB_APP_ID"
 };
+
+window.LIFEBAND_ADMIN_EMAIL_HINT = "admin@example.com";

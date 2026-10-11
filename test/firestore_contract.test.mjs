@@ -12,6 +12,7 @@ assert.match(rules, /request\.resource\.data\.status == 'unclaimed'/);
 assert.match(rules, /claimEmail/);
 assert.match(rules, /claimPhone/);
 assert.match(rules, /claimedAt/);
+assert.match(rules, /claimUid/);
 assert.match(rules, /ownerUid/);
 assert.match(rules, /match \/visibilitySettings\/\{uid\}/);
 assert.match(rules, /match \/users\/\{uid\}/);
