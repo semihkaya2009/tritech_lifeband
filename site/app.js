@@ -1,23 +1,37 @@
+import { compileDisplayFields } from "./visibility.js";
+
 const DEMO_QR_ID = "LB_DEMO_20261011";
 const STORAGE_KEY = "lifeband.admin.demo.v1";
 const DEFAULT_ORIGIN = "https://tritech-lifeband.semihkayaa2009.workers.dev";
 
 const demoProfile = {
   qrId: DEMO_QR_ID,
-  patientName: "Mehmet Yilmaz",
-  ownerPhone: "0532 000 00 00",
-  emergencyContact: "Ayse Yilmaz - 0532 000 00 00",
-  publicFields: {
-    "Kan Grubu": "A Rh+",
-    "Acil Durum Yakini": "Ayse Yilmaz - 0532 000 00 00",
-    "Alerjiler": "Penisilin, ari sokmasi"
-  },
-  staffFields: {
-    "Kronik Rahatsizlik": "Diyabet Tip 1",
-    "Kullandigi Ilaclar": "Insulin kalemi",
-    "Kesinlikle Yapilmamasi Gerekenler":
+  fields: {
+    fullName: "Mehmet Yilmaz",
+    nationalId: "12345678901",
+    phone: "0532 000 00 00",
+    email: "mehmet.yilmaz@example.com",
+    bloodType: "A Rh+",
+    emergencyContact: "Ayse Yilmaz - 0532 000 00 00",
+    allergies: "Penisilin, ari sokmasi",
+    chronicConditions: "Diyabet Tip 1",
+    medications: "Insulin kalemi",
+    criticalNotes:
       "Penisilin verilmemeli. Bilinc kapaliysa seker dusmesi kontrol edilmeli.",
-    "Son Guncelleme": "11.10.2026 - doktor mobil uygulama uzerinden guncelledi"
+    lastUpdated: "11.10.2026 - doktor mobil uygulama uzerinden guncelledi"
+  },
+  visibility: {
+    fullName: "masked",
+    nationalId: "masked",
+    phone: "private",
+    email: "private",
+    bloodType: "public",
+    emergencyContact: "masked",
+    allergies: "public",
+    chronicConditions: "staff",
+    medications: "staff",
+    criticalNotes: "staff",
+    lastUpdated: "staff"
   }
 };
 
@@ -32,7 +46,7 @@ const defaultState = {
       createdAt: "2026-10-11T09:00:00.000Z",
       status: "active",
       scanCount: 0,
-      publicFields: Object.keys(demoProfile.publicFields),
+      publicFields: ["bloodType", "emergencyContact", "allergies"],
       url: `${DEFAULT_ORIGIN}/q/${DEMO_QR_ID}`
     }
   ],
@@ -103,7 +117,11 @@ function render() {
     renderQrProfile(route.qrId);
     return;
   }
-  renderAdmin(route.type);
+  if (route.type === "admin") {
+    renderAdmin();
+    return;
+  }
+  renderLanding();
 }
 
 function getRoute() {
@@ -115,7 +133,64 @@ function getRoute() {
   return { type: "home" };
 }
 
-function renderAdmin(activeRoute) {
+function renderLanding() {
+  app.innerHTML = `
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">LB</div>
+          <div>
+            <p class="brand-title">LifeBand</p>
+            <p class="brand-subtitle">Acil durumda kontrollü sağlık bilgisi</p>
+          </div>
+        </div>
+        <nav class="top-actions" aria-label="Ana menü">
+          <a class="button secondary" href="/q/${DEMO_QR_ID}">Örnek QR</a>
+          <a class="button" href="/admin">Admin</a>
+        </nav>
+      </header>
+
+      <main class="main">
+        <section class="hero">
+          <div class="hero-panel">
+            <p class="eyebrow">LifeBand QR sistemi</p>
+            <h1>Hasta bilgisini QR ile güvenli ve kontrollü paylaş.</h1>
+            <p class="lead">
+              Kullanıcı hangi alanların açık, gizli, yarı görünür veya yalnızca sağlık personeline açık olacağını uygulamadan belirler. QR okunduğunda aynı bağlantı webde açılır, uygulama yüklüyse mobil akışa taşınır.
+            </p>
+            <div class="hero-actions">
+              <a class="button" href="/q/${DEMO_QR_ID}">Örnek QR profilini aç</a>
+              <a class="button secondary" href="/admin">Admin paneline geç</a>
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi"><strong>4</strong><span>görünürlük seviyesi</span></div>
+              <div class="kpi"><strong>90 gün</strong><span>Telegram doğrulama periyodu</span></div>
+              <div class="kpi"><strong>6 ay</strong><span>sağlık çalışanı yeniden onayı</span></div>
+            </div>
+          </div>
+
+          <aside class="card qr-preview" aria-label="QR akış özeti">
+            <div class="card-header">
+              <div>
+                <h2>QR erişim modeli</h2>
+                <p class="muted small">Aynı QR farklı yetkilere göre farklı alan gösterir.</p>
+              </div>
+              <span class="badge ok">MVP</span>
+            </div>
+            <dl class="info-list compact">
+              <div class="info-item"><dt>Normal kullanıcı</dt><dd>Açık ve yarı görünür alanlar</dd></div>
+              <div class="info-item"><dt>Onaylı personel</dt><dd>Kullanıcının izin verdiği sağlık alanları</dd></div>
+              <div class="info-item"><dt>Sistem admini</dt><dd>QR oluşturma, iptal ve başvuru onayı</dd></div>
+            </dl>
+          </aside>
+        </section>
+      </main>
+    </div>
+  `;
+  document.title = "LifeBand";
+}
+
+function renderAdmin() {
   const state = loadState();
   const pendingCount = state.staffApplications.filter((x) => x.status === "pending").length;
   const activeQrCount = state.qrCodes.filter((x) => x.status === "active").length;
@@ -133,7 +208,7 @@ function renderAdmin(activeRoute) {
           </div>
         </div>
         <nav class="top-actions" aria-label="Ana menü">
-          <a class="button secondary" href="/">Panel</a>
+          <a class="button secondary" href="/">Ana sayfa</a>
           <a class="button secondary" href="/q/${DEMO_QR_ID}">Demo QR</a>
           <a class="button" href="/admin">Admin</a>
         </nav>
@@ -193,10 +268,7 @@ function renderAdmin(activeRoute) {
 
   drawQr(demoUrl);
   bindAdminEvents();
-
-  if (activeRoute === "admin") {
-    document.title = "LifeBand Admin Panel";
-  }
+  document.title = "LifeBand Admin Panel";
 }
 
 function renderQrManager(state) {
@@ -340,8 +412,11 @@ function renderQrProfile(qrId) {
     addAccessLog(qrId, staffMode ? "staff" : "public");
   }
 
-  const publicFields = demoProfile.publicFields;
-  const staffFields = staffMode ? demoProfile.staffFields : {};
+  const displayFields = compileDisplayFields(
+    demoProfile.fields,
+    demoProfile.visibility,
+    staffMode ? "staff" : "public"
+  );
 
   app.innerHTML = `
     <main class="profile-page">
@@ -359,7 +434,7 @@ function renderQrProfile(qrId) {
         <section class="card stack">
           <div class="card-header">
             <div>
-              <h2>${escapeHtml(demoProfile.patientName)}</h2>
+              <h2>${escapeHtml(displayName(displayFields, demoProfile.fields))}</h2>
               <p class="muted small">QR: ${escapeHtml(qrId)}</p>
             </div>
             <span class="badge ${staffMode ? "ok" : "warn"}">${staffMode ? "Sağlık personeli görünümü" : "Public görünüm"}</span>
@@ -368,8 +443,7 @@ function renderQrProfile(qrId) {
             Acil durumda bu bilgiler hastanın belirlediği görünürlük ayarlarına göre gösterilir.
           </div>
           <dl class="info-list">
-            ${renderInfoItems(publicFields)}
-            ${renderInfoItems(staffFields)}
+            ${renderInfoItems(displayFields)}
           </dl>
           <div class="hero-actions">
             <a class="button" href="/q/${encodeURIComponent(qrId)}?staff=1">Sağlık personeli görünümü</a>
@@ -534,6 +608,10 @@ function renderInfoItems(fields) {
       </div>`
     )
     .join("");
+}
+
+function displayName(displayFields, fallbackFields) {
+  return displayFields.fullName || fallbackFields.fullName || "LifeBand kullanıcısı";
 }
 
 function statusLabel(status) {
