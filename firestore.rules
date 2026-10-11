@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSystemAdmin() {
+      return signedIn() && request.auth.token.systemAdmin == true;
+    }
+
+    function ownsUserDoc(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function staffDoc() {
+      return /databases/$(database)/documents/medicalStaff/$(request.auth.uid);
+    }
+
+    function isApprovedStaff() {
+      return signedIn()
+        && exists(staffDoc())
+        && get(staffDoc()).data.status == 'approved';
+    }
+
+    match /profiles/{uid} {
+      allow read, write: if ownsUserDoc(uid) || isSystemAdmin();
+      allow read: if isApprovedStaff();
+    }
+
+    match /publicProfiles/{qrId} {
+      allow read: if true;
+      allow create, update, delete: if isSystemAdmin()
+        || (signedIn() && request.resource.data.ownerUserId == request.auth.uid);
+    }
+
+    match /qrCodes/{qrId} {
+      allow read: if isSystemAdmin()
+        || isApprovedStaff()
+        || (signedIn() && resource.data.ownerUserId == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.ownerUserId == request.auth.uid
+        && request.resource.data.status == 'active';
+      allow update: if isSystemAdmin()
+        || (signedIn() && resource.data.ownerUserId == request.auth.uid);
+      allow delete: if isSystemAdmin();
+    }
+
+    match /staffApplications/{applicationId} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow read: if isSystemAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isSystemAdmin();
+    }
+
+    match /medicalStaff/{uid} {
+      allow read: if isSystemAdmin() || ownsUserDoc(uid);
+      allow write: if isSystemAdmin();
+    }
+
+    match /accessLogs/{logId} {
+      allow create: if request.resource.data.keys().hasOnly([
+        'qrId',
+        'mode',
+        'createdAt',
+        'userAgent'
+      ])
+      && request.resource.data.qrId is string
+      && request.resource.data.mode in ['public', 'staff', 'admin'];
+      allow read: if isSystemAdmin();
+      allow update, delete: if false;
+    }
+
+    match /adminSettings/{document=**} {
+      allow read, write: if isSystemAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

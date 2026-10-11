@@ -1,0 +1,1 @@
+window.LIFEBAND_FIREBASE_CONFIG = null;

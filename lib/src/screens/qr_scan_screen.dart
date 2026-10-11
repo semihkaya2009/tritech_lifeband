@@ -37,15 +37,16 @@ class _QrScanScreenState extends State<QrScanScreen> {
               if (_scanned) return;
               final List<Barcode> barcodes = capture.barcodes;
               if (barcodes.isEmpty) return;
-              final token = (barcodes.first.rawValue ?? '').trim();
-              if (token.isEmpty) return;
+              final rawValue = (barcodes.first.rawValue ?? '').trim();
+              if (rawValue.isEmpty) return;
+              final token = EmergencyDemo.extractQrToken(rawValue);
 
-              if (!EmergencyDemo.isValidQrToken(token)) {
+              if (token == null) {
                 if (!mounted) return;
                 _scaffoldMessenger.showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'Geçersiz QR kodu. LifeBand üzerindeki 10 haneli kodu tarayın.',
+                      'Geçersiz QR kodu. LifeBand QR linkini veya güvenli kodu tarayın.',
                     ),
                     duration: Duration(seconds: 2),
                   ),
