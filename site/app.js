@@ -137,7 +137,9 @@ async function initFirebase() {
     Object.assign(firebaseAuthApi, {
       getAuth: authModule.getAuth,
       signInWithEmailAndPassword: authModule.signInWithEmailAndPassword,
+      createUserWithEmailAndPassword: authModule.createUserWithEmailAndPassword,
       signInAnonymously: authModule.signInAnonymously,
+      signOut: authModule.signOut,
       onAuthStateChanged: authModule.onAuthStateChanged
     });
     Object.assign(firestoreApi, {
@@ -145,6 +147,7 @@ async function initFirebase() {
       getDoc: firestoreModule.getDoc,
       setDoc: firestoreModule.setDoc,
       updateDoc: firestoreModule.updateDoc,
+      addDoc: firestoreModule.addDoc,
       collection: firestoreModule.collection,
       query: firestoreModule.query,
       where: firestoreModule.where,
@@ -183,6 +186,10 @@ async function render() {
     await renderAdmin();
     return;
   }
+  if (route.type === "personel") {
+    await renderStaffPortal();
+    return;
+  }
   renderLanding();
 }
 
@@ -192,6 +199,7 @@ function getRoute() {
     return { type: "qr", qrId: segments[1] };
   }
   if (segments[0] === "admin") return { type: "admin" };
+  if (segments[0] === "personel") return { type: "personel" };
   return { type: "home" };
 }
 
@@ -207,6 +215,7 @@ function renderLanding() {
           </div>
         </div>
         <nav class="top-actions" aria-label="Ana menü">
+          <a class="button secondary" href="/personel">Sağlık Personeli</a>
           <a class="button" href="/admin">Admin</a>
         </nav>
       </header>
@@ -415,6 +424,267 @@ async function isCurrentSystemAdmin() {
   }
 }
 
+async function getCurrentMedicalStaffDoc() {
+  if (!firebaseReady || !currentUser) return null;
+  try {
+    const snap = await firestoreApi.getDoc(
+      firestoreApi.doc(firestoreDb, "medicalStaff", currentUser.uid)
+    );
+    return snap.exists() ? snap.data() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function isCurrentApprovedStaff() {
+  const doc = await getCurrentMedicalStaffDoc();
+  return doc?.status === "approved";
+}
+
+async function getCurrentPendingStaffApplication() {
+  if (!firebaseReady || !currentUser) return null;
+  try {
+    const snap = await firestoreApi.getDocs(
+      firestoreApi.query(
+        firestoreApi.collection(firestoreDb, "staffApplications"),
+        firestoreApi.where("uid", "==", currentUser.uid)
+      )
+    );
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return docs.find((d) => d.status === "pending") || docs[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function renderStaffPortal() {
+  if (!firebaseReady) {
+    app.innerHTML = `
+      <main class="profile-page">
+        <div class="profile-head">
+          <div>
+            <p class="eyebrow">LifeBand</p>
+            <h1 class="profile-title">Sağlık Personeli</h1>
+          </div>
+          <a class="button secondary" href="/">Ana sayfa</a>
+        </div>
+        <section class="card stack">
+          <p class="alert">Bu özellik için Firebase bağlantısı gerekli.</p>
+        </section>
+      </main>
+    `;
+    document.title = "LifeBand Sağlık Personeli";
+    return;
+  }
+
+  if (!authReady) {
+    renderLoading("Oturum kontrol ediliyor...");
+    return;
+  }
+
+  if (!currentUser) {
+    renderStaffAuthForm();
+    return;
+  }
+
+  const staffDoc = await getCurrentMedicalStaffDoc();
+  if (staffDoc?.status === "approved") {
+    renderStaffApproved(staffDoc);
+    return;
+  }
+
+  const pendingApp = await getCurrentPendingStaffApplication();
+  if (pendingApp) {
+    renderStaffApplicationStatus(pendingApp);
+    return;
+  }
+
+  renderStaffApplicationForm();
+}
+
+function renderStaffAuthForm(errorMessage = "", mode = "login") {
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand</p>
+          <h1 class="profile-title">Sağlık Personeli Girişi</h1>
+        </div>
+        <a class="button secondary" href="/">Ana sayfa</a>
+      </div>
+      <section class="card stack">
+        <p class="muted small">
+          Onaylı sağlık personeli olarak giriş yaptığınızda, hastaların size açtığı QR'ları okuttuğunuzda ek klinik bilgileri görebilirsiniz.
+        </p>
+        ${errorMessage ? `<p class="alert">${escapeHtml(errorMessage)}</p>` : ""}
+        <form id="staffAuthForm" class="form-grid">
+          <div class="field full">
+            <label for="staffEmail">E-posta</label>
+            <input id="staffEmail" name="email" type="email" autocomplete="username" required />
+          </div>
+          <div class="field full">
+            <label for="staffPassword">Şifre</label>
+            <input id="staffPassword" name="password" type="password" autocomplete="${mode === "register" ? "new-password" : "current-password"}" minlength="6" required />
+          </div>
+          <button class="button field full" type="submit">${mode === "register" ? "Hesap oluştur" : "Giriş yap"}</button>
+        </form>
+        <button class="button ghost" id="staffAuthToggle" type="button">
+          ${mode === "register" ? "Zaten hesabım var" : "Hesabım yok, oluşturmak istiyorum"}
+        </button>
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand Sağlık Personeli Girişi";
+
+  document.querySelector("#staffAuthToggle")?.addEventListener("click", () => {
+    renderStaffAuthForm("", mode === "register" ? "login" : "register");
+  });
+
+  document.querySelector("#staffAuthForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const email = normalizeEmail(form.get("email"));
+    const password = String(form.get("password") || "");
+    try {
+      if (mode === "register") {
+        await firebaseAuthApi.createUserWithEmailAndPassword(firebaseAuth, email, password);
+      } else {
+        await firebaseAuthApi.signInWithEmailAndPassword(firebaseAuth, email, password);
+      }
+      await render();
+    } catch (error) {
+      renderStaffAuthForm(authError(error, "Giriş yapılamadı."), mode);
+    }
+  });
+}
+
+function renderStaffApplicationForm(errorMessage = "") {
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand</p>
+          <h1 class="profile-title">Sağlık Çalışanı Başvurusu</h1>
+        </div>
+        <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+      </div>
+      <section class="card stack">
+        <p class="muted small">
+          Başvurunuz sistem admini tarafından incelenip onaylandıktan sonra, hastaların "sağlık personeline açık" yaptığı bilgileri QR okuttuğunuzda görebileceksiniz.
+        </p>
+        ${errorMessage ? `<p class="alert">${escapeHtml(errorMessage)}</p>` : ""}
+        <form id="staffApplicationForm" class="form-grid">
+          <div class="field">
+            <label for="staffName">Ad soyad</label>
+            <input id="staffName" name="name" required />
+          </div>
+          <div class="field">
+            <label for="staffTitle">Unvan</label>
+            <input id="staffTitle" name="title" placeholder="Örn. Acil Tıp Teknisyeni" required />
+          </div>
+          <div class="field">
+            <label for="staffHospital">Kurum</label>
+            <input id="staffHospital" name="hospital" required />
+          </div>
+          <div class="field">
+            <label for="staffPhone">Telefon</label>
+            <input id="staffPhone" name="phone" required />
+          </div>
+          <button class="button field full" type="submit">Başvuruyu gönder</button>
+        </form>
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand Sağlık Çalışanı Başvurusu";
+
+  document.querySelector("#staffSignOut")?.addEventListener("click", async () => {
+    await firebaseAuthApi.signOut(firebaseAuth);
+    await render();
+  });
+
+  document.querySelector("#staffApplicationForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      await firestoreApi.addDoc(firestoreApi.collection(firestoreDb, "staffApplications"), {
+        uid: currentUser.uid,
+        email: currentUser.email || "",
+        name: String(form.get("name") || ""),
+        title: String(form.get("title") || ""),
+        hospital: String(form.get("hospital") || ""),
+        phone: String(form.get("phone") || ""),
+        status: "pending",
+        createdAt: firestoreApi.serverTimestamp()
+      });
+      toast("Başvurunuz gönderildi.");
+      await render();
+    } catch (error) {
+      renderStaffApplicationForm("Başvuru gönderilemedi: " + error.message);
+    }
+  });
+}
+
+function renderStaffApplicationStatus(application) {
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand</p>
+          <h1 class="profile-title">Başvurunuz İnceleniyor</h1>
+        </div>
+        <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+      </div>
+      <section class="card stack">
+        <p class="alert">
+          ${application.status === "rejected"
+            ? "Başvurunuz reddedildi. Sorularınız için sistem admini ile iletişime geçin."
+            : "Başvurunuz sistem admini tarafından henüz onaylanmadı."}
+        </p>
+        <dl class="info-list">
+          <div class="info-item"><dt>Ad soyad</dt><dd>${escapeHtml(application.name || "")}</dd></div>
+          <div class="info-item"><dt>Unvan</dt><dd>${escapeHtml(application.title || "")}</dd></div>
+          <div class="info-item"><dt>Kurum</dt><dd>${escapeHtml(application.hospital || "")}</dd></div>
+        </dl>
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand Sağlık Personeli";
+
+  document.querySelector("#staffSignOut")?.addEventListener("click", async () => {
+    await firebaseAuthApi.signOut(firebaseAuth);
+    await render();
+  });
+}
+
+function renderStaffApproved(staffDoc) {
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand</p>
+          <h1 class="profile-title">Onaylı Sağlık Personeli</h1>
+        </div>
+        <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+      </div>
+      <section class="card stack">
+        <p class="alert" style="background:#dff7ec;color:#047857;">
+          Hesabınız onaylı. Bir hastanın QR'ını okuttuğunuzda, size açtığı ek klinik bilgileri otomatik olarak göreceksiniz — ayrı bir "personel görünümü" butonuna gerek yok.
+        </p>
+        <dl class="info-list">
+          <div class="info-item"><dt>Unvan</dt><dd>${escapeHtml(staffDoc.title || "")}</dd></div>
+          <div class="info-item"><dt>Kurum</dt><dd>${escapeHtml(staffDoc.hospital || "")}</dd></div>
+        </dl>
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand Sağlık Personeli";
+
+  document.querySelector("#staffSignOut")?.addEventListener("click", async () => {
+    await firebaseAuthApi.signOut(firebaseAuth);
+    await render();
+  });
+}
+
 function renderAdminPanel(state) {
   const pendingCount = state.staffApplications.filter((x) => x.status === "pending").length;
   const activeQrCount = state.qrCodes.filter((x) => x.status === "active").length;
@@ -599,7 +869,7 @@ function renderStaffApplications(state) {
         <td>${escapeHtml(item.hospital || item.organization || "")}<br><span class="muted small">${escapeHtml(item.phone || "")}</span></td>
         <td><span class="badge ${statusClass(item.status)}">${statusLabel(item.status)}</span></td>
         <td class="actions-cell">
-          <button class="icon-button ok" title="Onayla" data-action="staff-status" data-status="approved" data-id="${escapeAttr(item.id)}">✓</button>
+          <button class="icon-button ok" title="Onayla" data-action="staff-status" data-status="approved" data-id="${escapeAttr(item.id)}" data-uid="${escapeAttr(item.uid || "")}" data-title="${escapeAttr(item.title || "")}" data-hospital="${escapeAttr(item.hospital || item.organization || "")}">✓</button>
           <button class="icon-button danger" title="Reddet" data-action="staff-status" data-status="rejected" data-id="${escapeAttr(item.id)}">×</button>
         </td>
       </tr>`
@@ -691,26 +961,27 @@ async function renderQrProfile(qrId) {
 async function renderFirebaseQrProfile(qrId) {
   renderLoading("QR bilgisi getiriliyor...");
   try {
+    const staffMode = await isCurrentApprovedStaff();
+    const collectionName = staffMode ? "staffProfiles" : "publicProfiles";
     const profileSnapshot = await firestoreApi.getDoc(
-      firestoreApi.doc(firestoreDb, "publicProfiles", qrId)
+      firestoreApi.doc(firestoreDb, collectionName, qrId)
     );
     if (profileSnapshot.exists()) {
-      const publicProfile = profileSnapshot.data();
-      if (publicProfile.status === "revoked") {
+      const profileDoc = profileSnapshot.data();
+      if (profileDoc.status === "revoked") {
         renderInactiveQr(qrId);
         return;
       }
 
-      const staffMode = new URLSearchParams(window.location.search).get("staff") === "1";
       const displayFields =
-        publicProfile.displayFields ||
+        profileDoc.displayFields ||
         compileDisplayFields(
-          publicProfile.fields || {},
-          publicProfile.visibility || {},
+          profileDoc.fields || {},
+          profileDoc.visibility || {},
           staffMode ? "staff" : "public"
         );
       void logAccess(qrId, staffMode ? "staff" : "public");
-      renderProfileCard(qrId, "Acil Sağlık Profili", displayFields);
+      renderProfileCard(qrId, "Acil Sağlık Profili", displayFields, staffMode);
       return;
     }
 
@@ -877,7 +1148,13 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false) {
             <h2>${escapeHtml(displayName(displayFields, firebaseReady ? {} : demoProfile.fields))}</h2>
             <p class="muted small">QR: ${escapeHtml(qrId)}</p>
           </div>
-          <span class="badge ${staffMode ? "ok" : "warn"}">${staffMode ? "Sağlık personeli görünümü" : "Public görünüm"}</span>
+          ${
+            staffMode
+              ? `<span class="badge ok">Sağlık personeli görünümü</span>`
+              : !firebaseReady
+                ? `<span class="badge warn">Public görünüm (demo)</span>`
+                : ""
+          }
         </div>
         <div class="alert">
           Acil durumda bu bilgiler hastanın belirlediği görünürlük ayarlarına göre gösterilir.
@@ -886,13 +1163,15 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false) {
           ${renderInfoItems(displayFields)}
         </dl>
         ${
-          firebaseReady
-            ? ""
-            : `
+          !firebaseReady
+            ? `
           <div class="hero-actions">
             <a class="button" href="/q/${encodeURIComponent(qrId)}?staff=1">Sağlık personeli görünümü</a>
             <a class="button secondary" href="/q/${encodeURIComponent(qrId)}">Public görünüm</a>
           </div>`
+            : !staffMode
+              ? `<p class="footer-note"><a href="/personel">Sağlık personeli misiniz? Giriş yapın</a> — onaylı hesaplar ek klinik bilgileri otomatik görür.</p>`
+              : ""
         }
       </section>
     </main>
@@ -1021,6 +1300,24 @@ function bindAdminEvents() {
           reviewedBy: currentUser.uid,
           reviewedAt: firestoreApi.serverTimestamp()
         });
+
+        if (status === "approved") {
+          const applicantUid = button.getAttribute("data-uid");
+          if (applicantUid) {
+            await firestoreApi.setDoc(
+              firestoreApi.doc(firestoreDb, "medicalStaff", applicantUid),
+              {
+                status: "approved",
+                applicationId: id,
+                title: button.getAttribute("data-title") || "",
+                hospital: button.getAttribute("data-hospital") || "",
+                approvedAt: firestoreApi.serverTimestamp()
+              },
+              { merge: true }
+            );
+          }
+        }
+
         toast(status === "approved" ? "Başvuru onaylandı." : "Başvuru reddedildi.");
         await renderAdmin();
         return;
@@ -1269,10 +1566,21 @@ function safeFileName(value) {
 }
 
 function adminAuthError(error) {
-  if (String(error?.code || "").includes("invalid-credential")) {
+  return authError(error, "Admin girişi yapılamadı.");
+}
+
+function authError(error, fallback) {
+  const code = String(error?.code || "");
+  if (code.includes("invalid-credential") || code.includes("wrong-password")) {
     return "E-posta veya şifre hatalı.";
   }
-  return "Admin girişi yapılamadı.";
+  if (code.includes("email-already-in-use")) {
+    return "Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.";
+  }
+  if (code.includes("weak-password")) {
+    return "Şifre en az 6 karakter olmalı.";
+  }
+  return fallback;
 }
 
 function escapeHtml(value) {
