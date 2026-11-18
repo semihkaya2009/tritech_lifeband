@@ -150,6 +150,28 @@ service cloud.firestore {
       allow read, write: if ownsUserDoc(uid) || isSystemAdmin();
     }
 
+    match /staffProfiles/{qrId} {
+      allow read: if isSystemAdmin()
+        || isApprovedStaff()
+        || ownsQrId(qrId);
+      allow create: if isSystemAdmin()
+        || validClaimPublicProfileCreate(qrId)
+        || (
+          ownsQrId(qrId)
+          && request.resource.data.ownerUid == request.auth.uid
+        );
+      allow update: if isSystemAdmin()
+        || (
+          ownsQrId(qrId)
+          && request.resource.data.ownerUid == request.auth.uid
+        );
+      allow delete: if isSystemAdmin()
+        || (
+          signedIn()
+          && resource.data.ownerUid == request.auth.uid
+        );
+    }
+
     match /publicProfiles/{qrId} {
       allow read: if true;
       allow create: if isSystemAdmin()

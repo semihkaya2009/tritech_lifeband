@@ -87,4 +87,44 @@ void main() {
       expect(fields, isNot(contains('medications')));
     });
   });
+
+  group('compileStaffFields', () {
+    test('includes staff-level fields at full value, excludes private', () {
+      const profile = LifeBandProfile(
+        uid: 'user-1',
+        bloodType: 'A Rh+',
+        nationalId: '12345678901',
+        chronicDiseases: 'Diyabet',
+        medications: 'Insulin',
+      );
+      const settings = VisibilitySettings(
+        uid: 'user-1',
+        fields: {
+          'bloodType': VisibilityLevel.public,
+          'nationalId': VisibilityLevel.private,
+          'chronicDiseases': VisibilityLevel.staff,
+          'medications': VisibilityLevel.staff,
+        },
+      );
+
+      final fields = compileStaffFields(profile, settings);
+
+      expect(fields['bloodType'], 'A Rh+');
+      expect(fields['chronicDiseases'], 'Diyabet');
+      expect(fields['medications'], 'Insulin');
+      expect(fields, isNot(contains('nationalId')));
+    });
+
+    test('still masks masked-level fields for staff view', () {
+      const profile = LifeBandProfile(uid: 'user-1', phone: '05321234567');
+      const settings = VisibilitySettings(
+        uid: 'user-1',
+        fields: {'phone': VisibilityLevel.masked},
+      );
+
+      final fields = compileStaffFields(profile, settings);
+
+      expect(fields['phone'], '05** *** ** 67');
+    });
+  });
 }

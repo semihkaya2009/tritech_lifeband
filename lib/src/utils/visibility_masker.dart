@@ -23,6 +23,33 @@ Map<String, String> compilePublicFields(
   return result;
 }
 
+/// Same as [compilePublicFields] but also includes `staff`-level fields at
+/// full value. Only ever stored where Firestore rules restrict reads to
+/// approved medical staff (plus the owner/admin) — never in the
+/// anonymous-readable `publicProfiles` collection.
+Map<String, String> compileStaffFields(
+  LifeBandProfile profile,
+  VisibilitySettings settings,
+) {
+  final result = <String, String>{};
+  for (final entry in profile.fieldValues.entries) {
+    final value = entry.value.trim();
+    if (value.isEmpty) continue;
+
+    final level = settings.levelFor(entry.key);
+    switch (level) {
+      case VisibilityLevel.public:
+      case VisibilityLevel.staff:
+        result[entry.key] = value;
+      case VisibilityLevel.masked:
+        result[entry.key] = maskField(entry.key, value);
+      case VisibilityLevel.private:
+        break;
+    }
+  }
+  return result;
+}
+
 String maskField(String fieldKey, String value) {
   final trimmed = value.trim();
   if (trimmed.isEmpty) return '';

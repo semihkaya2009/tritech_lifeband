@@ -210,6 +210,12 @@ class FirestoreService {
         'visibility': visibilityData['fields'],
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true)),
+      _db.collection('staffProfiles').doc(qrId).set({
+        'qrId': qrId,
+        'ownerUid': uid,
+        'displayFields': compileStaffFields(profile, visibility),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)),
     ]);
   }
 }

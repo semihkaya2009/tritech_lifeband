@@ -34,7 +34,13 @@ Hastane admini bu MVP kapsamına alınmadı.
 
 - `profiles`: kullanıcının gerçek sağlık profili.
 - `visibilitySettings`: kullanıcının alan bazlı görünürlük tercihleri.
-- `publicProfiles`: QR okutulduğunda herkese açılabilecek güvenli alanlar.
+- `publicProfiles`: QR okutulduğunda herkese açılabilecek güvenli alanlar
+  (yalnızca `public`/`masked` seviyeli alanlar; `staff` seviyeli alanlar hiçbir
+  zaman bu belgeye yazılmaz).
+- `staffProfiles`: `publicProfiles` ile aynı QR id altında, ayrıca `staff`
+  seviyeli alanları da içeren belge. Yalnızca QR sahibi, sistem admini veya
+  `medicalStaff/{uid}.status == 'approved'` olan onaylı sağlık çalışanı
+  okuyabilir; anonim/genel ziyaretçi asla okuyamaz.
 - `qrCodes`: QR id, `ownerUid`, `status`, token hash ve denetim tarihleri.
 - `staffApplications`: sağlık çalışanı başvuruları.
 - `medicalStaff`: onaylı sağlık çalışanı kayıtları.
@@ -60,9 +66,13 @@ bu alanla aynı formatta saklamalıdır.
 ## Erişim ilkesi
 
 Herkese açık QR ekranı sadece `publicProfiles` içindeki seçilmiş alanları okur.
-Tam sağlık profili için Firebase Auth ve onaylı sağlık çalışanı rolü gerekir.
-Admin işlemleri için `systemAdmin: true` custom claim zorunlu olmalıdır.
-`profiles` ve `visibilitySettings` belgelerini yalnızca kullanıcı sahibi veya
-sistem admini okuyup yazabilir. `publicProfiles` herkese okunur, ancak sadece
-ilgili QR sahibi, sistem admini veya ilk claim işlemini yapan `claimUid`
-tarafından ilk kez oluşturulur.
+Onaylı sağlık çalışanı, aynı QR için `staffProfiles` belgesini okuyarak ek
+(`staff` seviyeli) alanları görür — web tarafı bunu otomatik yapar: ziyaretçi
+giriş yapmışsa ve `medicalStaff/{uid}.status == 'approved'` ise `staffProfiles`,
+aksi halde `publicProfiles` okunur. Bu bir URL parametresiyle değiştirilebilen
+bir "görünüm modu" değildir; tamamen kimlik doğrulamaya bağlıdır.
+Admin işlemleri için `systemAdmin: true` custom claim veya `adminUsers/{uid}`
+belgesi zorunludur. `profiles` ve `visibilitySettings` belgelerini yalnızca
+kullanıcı sahibi veya sistem admini okuyup yazabilir. `publicProfiles` ve
+`staffProfiles` herkese/onaylı personele okunur, ancak sadece ilgili QR sahibi,
+sistem admini veya ilk claim işlemini yapan `claimUid` tarafından oluşturulur.
