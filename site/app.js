@@ -281,10 +281,14 @@ function renderLanding() {
           <div class="brand-mark">LB</div>
           <div>
             <p class="brand-title">LifeBand</p>
-            <p class="brand-subtitle">Acil durumda kontrollü sağlık bilgisi</p>
+            <p class="brand-subtitle">Tri Tech — Acil Sağlık QR Sistemi</p>
           </div>
         </div>
         <nav class="top-actions" aria-label="Ana menü">
+          <a class="nav-link" href="#problem">Problem</a>
+          <a class="nav-link" href="#cozum">Çözüm</a>
+          <a class="nav-link" href="#roller">Roller</a>
+          <a class="nav-link" href="#surec">QR Süreci</a>
           <a class="button secondary" href="/panelim">QR'larım</a>
           <a class="button secondary" href="/personel">Sağlık Personeli</a>
           <a class="button" href="/admin">Admin</a>
@@ -293,108 +297,127 @@ function renderLanding() {
 
       <main class="main">
         <section class="hero">
-          <div class="hero-panel">
-            <p class="eyebrow">LifeBand QR sistemi</p>
-            <h1>Hasta bilgisini QR ile güvenli ve kontrollü paylaş.</h1>
+          <div class="hero-panel reveal">
+            <p class="eyebrow">İnsan Yararına Teknolojiler · Sağlık ve İlk Yardım</p>
+            <h1>Bilinci kapalı bir hastanın geçmişini, saniyeler içinde doğru ellere ulaştırır.</h1>
             <p class="lead">
-              Kullanıcı hangi alanların açık, gizli, yarı görünür veya yalnızca sağlık personeline açık olacağını uygulamadan belirler. QR okunduğunda aynı bağlantı webde açılır, uygulama yüklüyse mobil akışa taşınır.
+              Pilsiz, şarjsız bir bileklik üzerindeki güvenli QR kod; kan grubu, alerji ve kronik hastalık gibi bilgileri — hastanın izin verdiği ölçüde — ilk yardım ekiplerine anında gösterir.
             </p>
             <div class="hero-actions">
-              <a class="button" href="/admin">Admin paneline geç</a>
-            </div>
-            <div class="kpi-grid">
-              <div class="kpi"><strong>4</strong><span>görünürlük seviyesi</span></div>
-              <div class="kpi"><strong>90 gün</strong><span>Telegram doğrulama periyodu</span></div>
-              <div class="kpi"><strong>6 ay</strong><span>sağlık çalışanı yeniden onayı</span></div>
+              <a class="button" href="#surec">QR nasıl çalışır?</a>
+              <a class="button secondary" href="#roller">Rolleri gör</a>
             </div>
           </div>
 
-          <aside class="card band-showcase" aria-label="LifeBand akıllı bileklik görseli">
-            ${bandIllustrationSvg()}
+          <aside class="card band-showcase reveal reveal-delay-1" aria-label="LifeBand akıllı bileklik görseli">
+            <div class="band-glow" aria-hidden="true"></div>
+            <img class="band-float" src="/images/wristband-qr.png" alt="QR kodlu akıllı bileklik" />
           </aside>
         </section>
 
-        <section class="card">
-          <div class="card-header">
-            <div>
-              <h2>QR erişim modeli</h2>
-              <p class="muted small">Aynı QR farklı yetkilere göre farklı alan gösterir.</p>
-            </div>
-            <span class="badge ok">MVP</span>
+        <section class="section" id="problem">
+          <div class="reveal">
+            <p class="section-eyebrow">Problem</p>
+            <h2>Hasta geçmişi bilinmeden yapılan müdahale, hayatı tehlikeye atar.</h2>
+            <p class="lead" style="font-size: 16px;">
+              Sokakta aniden bayılan sıradan bir vatandaşın yaklaşık %10 ihtimalle bir alerjisi, %11 ihtimalle şeker hastalığı vardır — ama bilinci kapalıyken bunu kimse bilemez.
+            </p>
           </div>
-          <dl class="info-list compact">
-            <div class="info-item"><dt>Normal kullanıcı</dt><dd>Açık ve yarı görünür alanlar</dd></div>
-            <div class="info-item"><dt>Onaylı personel</dt><dd>Kullanıcının izin verdiği sağlık alanları</dd></div>
-            <div class="info-item"><dt>Sistem admini</dt><dd>QR oluşturma, iptal ve başvuru onayı</dd></div>
-          </dl>
+          <div class="stat-grid">
+            <div class="stat-card reveal"><strong>6,1 / 1000</strong><span>İlaç kaynaklı acil servis başvurusu oranı; bu hastaların %38,6'sı hastaneye yatırılıyor.</span></div>
+            <div class="stat-card reveal reveal-delay-1"><strong>%16,1</strong><span>TÜİK Türkiye Sağlık Araştırması'na göre toplumda hipertansiyon oranı.</span></div>
+            <div class="stat-card reveal reveal-delay-2"><strong>%11,4</strong><span>Toplumda diyabet görülme oranı — acil anda bilinmesi hayati bir bilgi.</span></div>
+            <div class="stat-card reveal reveal-delay-3"><strong>%9,6</strong><span>Belirli madde/ilaçlara karşı alerji hassasiyeti taşıyan birey oranı.</span></div>
+          </div>
+        </section>
+
+        <section class="section" id="cozum">
+          <div class="reveal">
+            <p class="section-eyebrow">Çözüm</p>
+            <h2>Devresiz bir bileklik, görünürlüğü hasta kontrol eder.</h2>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-card reveal">
+              <span class="role-scope">1</span>
+              <p style="margin-top:10px;font-weight:800;">Pilsiz donanım</p>
+              <p>Şarj veya arıza riski yok; günlük bir aksesuar gibi sürekli kolda taşınır.</p>
+            </div>
+            <div class="stat-card reveal reveal-delay-1">
+              <span class="role-scope">2</span>
+              <p style="margin-top:10px;font-weight:800;">Alan bazlı görünürlük</p>
+              <p>Her bilgi için ayrı seçim: gizli, açık, yarı görünür (maskeli) veya yalnızca sağlık personeline açık.</p>
+            </div>
+            <div class="stat-card reveal reveal-delay-2">
+              <span class="role-scope">3</span>
+              <p style="margin-top:10px;font-weight:800;">Anlık güncelleme</p>
+              <p>Yeni bir alerji eklendiği an sistem güncellenir; bilekliği değiştirmeye gerek kalmaz.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="roller">
+          <div class="reveal">
+            <p class="section-eyebrow">Erişim Modeli</p>
+            <h2>Aynı QR, kim okuttuğuna göre farklı bilgi gösterir.</h2>
+          </div>
+          <div class="role-grid">
+            <div class="role-card reveal">
+              <p class="role-name">Sistem admini</p>
+              <span class="role-scope">Tam yetki</span>
+              <p>QR oluşturur/iptal eder, sağlık personeli başvurularını onaylar, erişim kayıtlarını denetler.</p>
+            </div>
+            <div class="role-card reveal reveal-delay-1">
+              <p class="role-name">Anonim ziyaretçi</p>
+              <span class="role-scope" style="color: var(--muted);">Sadece açık/maskeli alanlar</span>
+              <p>QR'ı okutan herkes, yalnızca hastanın "açık" veya "yarı görünür" yaptığı alanları görür.</p>
+            </div>
+            <div class="role-card reveal reveal-delay-2">
+              <p class="role-name">QR sahibi</p>
+              <span class="role-scope">Kendi profili</span>
+              <p>QR'ı sahiplenirken girdiği e-posta ile giriş yaptığında tüm sağlık bilgisini ve görünürlüğünü <a href="/panelim">webden düzenler</a>.</p>
+            </div>
+            <div class="role-card reveal reveal-delay-3">
+              <p class="role-name">Sağlık personeli</p>
+              <span class="role-scope">Admin onaylı</span>
+              <p>Onaylandıktan sonra, hastanın "sağlık personeline açık" yaptığı ek alanları otomatik görür.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="surec" style="padding-bottom: 64px;">
+          <div class="reveal">
+            <p class="section-eyebrow">QR Yaşam Döngüsü</p>
+            <h2>Oluşturulmasından profilin aktif olmasına kadar.</h2>
+          </div>
+          <div class="step-rail">
+            <div class="step-item reveal"><strong>1. Oluşturma</strong><span>Admin panelden rastgele, tahmin edilemez bir QR üretilir — durum: sahipsiz.</span></div>
+            <div class="step-item reveal reveal-delay-1"><strong>2. Sahiplenme</strong><span>İlk okutulduğunda ad, soyad, e-posta ve telefon alınır — durum: sahiplenildi.</span></div>
+            <div class="step-item reveal reveal-delay-2"><strong>3. Profil</strong><span>Aynı e-posta ile <a href="/giris">webden giriş yapılır</a>, sağlık bilgisi ve görünürlük ayarlanır.</span></div>
+            <div class="step-item reveal reveal-delay-3"><strong>4. Aktif</strong><span>QR artık canlı: herkes izin verilen alanları, onaylı personel ek alanları görür.</span></div>
+          </div>
         </section>
       </main>
     </div>
   `;
   document.title = "LifeBand";
+  initScrollReveal();
 }
 
-function bandIllustrationSvg() {
-  return `
-    <svg class="band-float" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR kodlu akıllı bileklik illüstrasyonu, yandan görünüm">
-      <defs>
-        <linearGradient id="strapGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#3a3a3d" />
-          <stop offset="45%" stop-color="#141416" />
-          <stop offset="100%" stop-color="#000000" />
-        </linearGradient>
-        <linearGradient id="bezelGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#46464a" />
-          <stop offset="100%" stop-color="#050506" />
-        </linearGradient>
-        <linearGradient id="screenGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#22304a" />
-          <stop offset="100%" stop-color="#0a1120" />
-        </linearGradient>
-      </defs>
-
-      <g transform="rotate(-28 105 155)">
-        <circle class="band-pulse-ring" cx="105" cy="153" r="46" fill="none" stroke="#14b8a6" stroke-width="2.5" />
-        <circle class="band-pulse-ring delay" cx="105" cy="153" r="46" fill="none" stroke="#14b8a6" stroke-width="2.5" />
-
-        <rect x="150" y="128" width="168" height="58" rx="29" fill="url(#strapGradient)" />
-        <rect class="band-shine" x="150" y="128" width="168" height="20" rx="10" fill="#ffffff" opacity="0.12" />
-        <g fill="#000000" opacity="0.55">
-          <circle cx="196" cy="157" r="4.2" /><circle cx="214" cy="157" r="4.2" />
-          <circle cx="232" cy="157" r="4.2" /><circle cx="250" cy="157" r="4.2" />
-          <circle cx="268" cy="157" r="4.2" /><circle cx="286" cy="157" r="4.2" />
-        </g>
-
-        <rect x="0" y="232" width="104" height="46" rx="23" fill="url(#strapGradient)" />
-        <ellipse cx="52" cy="255" rx="20" ry="13" fill="none" stroke="#2c2c2f" stroke-width="5" opacity="0.8" />
-
-        <rect x="38" y="68" width="134" height="174" rx="58" fill="url(#bezelGradient)" />
-        <rect x="53" y="83" width="104" height="144" rx="46" fill="url(#screenGradient)" />
-
-        <rect x="71" y="118" width="66" height="66" rx="6" fill="#ffffff" />
-
-        <rect x="74" y="119" width="27" height="27" fill="#0a1120" />
-        <rect x="78" y="123" width="19" height="19" fill="#ffffff" />
-        <rect x="83" y="128" width="9" height="9" fill="#0a1120" />
-
-        <rect x="110" y="119" width="27" height="27" fill="#0a1120" />
-        <rect x="114" y="123" width="19" height="19" fill="#ffffff" />
-        <rect x="119" y="128" width="9" height="9" fill="#0a1120" />
-
-        <rect x="74" y="155" width="27" height="27" fill="#0a1120" />
-        <rect x="78" y="159" width="19" height="19" fill="#ffffff" />
-        <rect x="83" y="164" width="9" height="9" fill="#0a1120" />
-
-        <g fill="#0a1120">
-          <rect x="101" y="119" width="9" height="9" /><rect x="101" y="128" width="9" height="9" /><rect x="101" y="137" width="9" height="9" />
-          <rect x="74" y="146" width="9" height="9" /><rect x="83" y="146" width="9" height="9" /><rect x="101" y="146" width="9" height="9" /><rect x="119" y="146" width="9" height="9" /><rect x="128" y="146" width="9" height="9" />
-          <rect x="101" y="155" width="9" height="9" /><rect x="110" y="155" width="9" height="9" /><rect x="128" y="155" width="9" height="9" />
-          <rect x="83" y="164" width="9" height="9" /><rect x="101" y="164" width="9" height="9" /><rect x="119" y="164" width="9" height="9" />
-          <rect x="101" y="173" width="9" height="9" /><rect x="110" y="173" width="9" height="9" /><rect x="128" y="173" width="9" height="9" />
-        </g>
-      </g>
-    </svg>
-  `;
+function initScrollReveal() {
+  const elements = document.querySelectorAll(".reveal");
+  if (!elements.length) return;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.15 }
+  );
+  elements.forEach((element) => observer.observe(element));
 }
 
 async function renderAdmin() {

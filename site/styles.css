@@ -107,6 +107,17 @@ a {
   justify-content: flex-end;
 }
 
+.nav-link {
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.nav-link:hover {
+  color: var(--primary-dark);
+}
+
 .main {
   width: min(1180px, calc(100% - 32px));
   margin: 28px auto 44px;
@@ -591,12 +602,166 @@ h1 {
   place-items: center;
   padding: 24px;
   overflow: hidden;
+  position: relative;
 }
 
 .band-float {
   width: min(280px, 100%);
-  animation: band-float 5.5s ease-in-out infinite;
+  animation: band-float 4.5s ease-in-out infinite;
   filter: drop-shadow(0 18px 24px rgba(15, 23, 42, 0.12));
+  position: relative;
+}
+
+.band-glow {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.22), transparent 70%);
+  filter: blur(6px);
+  animation: band-glow-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes band-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+/* Scroll-reveal: sections fade/slide in as they enter the viewport (see
+   initScrollReveal() in app.js). Falls back to fully visible if JS never
+   attaches the observer. */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+.reveal-delay-1 {
+  transition-delay: 0.08s;
+}
+
+.reveal-delay-2 {
+  transition-delay: 0.16s;
+}
+
+.reveal-delay-3 {
+  transition-delay: 0.24s;
+}
+
+.section-eyebrow {
+  color: var(--primary-dark);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section {
+  padding: 48px 0;
+}
+
+.stat-grid,
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.stat-card,
+.role-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.stat-card:hover,
+.role-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: #99d6cb;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+
+.stat-card span {
+  display: block;
+  margin-top: 8px;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.role-card .role-name {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.role-card .role-scope {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.role-card p {
+  margin: 10px 0 0;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.step-rail {
+  display: flex;
+  gap: 0;
+  margin-top: 28px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.step-item {
+  flex: 1 1 220px;
+  min-width: 200px;
+  border-top: 3px solid var(--primary);
+  padding: 14px 18px 0 0;
+}
+
+.step-item strong {
+  display: block;
+  font-weight: 800;
+}
+
+.step-item span {
+  display: block;
+  margin-top: 6px;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .band-pulse-ring {
@@ -646,8 +811,15 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .band-float,
   .band-pulse-ring,
-  .band-shine {
+  .band-shine,
+  .band-glow {
     animation: none !important;
+  }
+
+  .reveal {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
