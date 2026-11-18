@@ -565,6 +565,71 @@ h1 {
   display: none !important;
 }
 
+.band-showcase {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.band-float {
+  width: min(280px, 100%);
+  animation: band-float 5.5s ease-in-out infinite;
+  filter: drop-shadow(0 18px 24px rgba(15, 23, 42, 0.12));
+}
+
+.band-pulse-ring {
+  transform-origin: center;
+  animation: band-pulse 2.6s ease-out infinite;
+}
+
+.band-pulse-ring.delay {
+  animation-delay: 1.3s;
+}
+
+.band-shine {
+  animation: band-shine 3.2s ease-in-out infinite;
+}
+
+@keyframes band-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+
+@keyframes band-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes band-shine {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band-float,
+  .band-pulse-ring,
+  .band-shine {
+    animation: none !important;
+  }
+}
+
 @media (max-width: 900px) {
   .hero,
   .grid {
@@ -597,6 +662,10 @@ h1 {
   .card,
   .qr-preview {
     padding: 16px;
+  }
+
+  .band-showcase {
+    padding: 8px;
   }
 
   .form-grid,

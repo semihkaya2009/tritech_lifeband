@@ -207,7 +207,6 @@ function renderLanding() {
           </div>
         </div>
         <nav class="top-actions" aria-label="Ana menü">
-          <a class="button secondary" href="/q/${DEMO_QR_ID}">Örnek QR</a>
           <a class="button" href="/admin">Admin</a>
         </nav>
       </header>
@@ -221,8 +220,7 @@ function renderLanding() {
               Kullanıcı hangi alanların açık, gizli, yarı görünür veya yalnızca sağlık personeline açık olacağını uygulamadan belirler. QR okunduğunda aynı bağlantı webde açılır, uygulama yüklüyse mobil akışa taşınır.
             </p>
             <div class="hero-actions">
-              <a class="button" href="/q/${DEMO_QR_ID}">Örnek QR profilini aç</a>
-              <a class="button secondary" href="/admin">Admin paneline geç</a>
+              <a class="button" href="/admin">Admin paneline geç</a>
             </div>
             <div class="kpi-grid">
               <div class="kpi"><strong>4</strong><span>görünürlük seviyesi</span></div>
@@ -231,25 +229,78 @@ function renderLanding() {
             </div>
           </div>
 
-          <aside class="card qr-preview" aria-label="QR akış özeti">
-            <div class="card-header">
-              <div>
-                <h2>QR erişim modeli</h2>
-                <p class="muted small">Aynı QR farklı yetkilere göre farklı alan gösterir.</p>
-              </div>
-              <span class="badge ok">MVP</span>
-            </div>
-            <dl class="info-list compact">
-              <div class="info-item"><dt>Normal kullanıcı</dt><dd>Açık ve yarı görünür alanlar</dd></div>
-              <div class="info-item"><dt>Onaylı personel</dt><dd>Kullanıcının izin verdiği sağlık alanları</dd></div>
-              <div class="info-item"><dt>Sistem admini</dt><dd>QR oluşturma, iptal ve başvuru onayı</dd></div>
-            </dl>
+          <aside class="card band-showcase" aria-label="LifeBand akıllı bileklik görseli">
+            ${bandIllustrationSvg()}
           </aside>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>QR erişim modeli</h2>
+              <p class="muted small">Aynı QR farklı yetkilere göre farklı alan gösterir.</p>
+            </div>
+            <span class="badge ok">MVP</span>
+          </div>
+          <dl class="info-list compact">
+            <div class="info-item"><dt>Normal kullanıcı</dt><dd>Açık ve yarı görünür alanlar</dd></div>
+            <div class="info-item"><dt>Onaylı personel</dt><dd>Kullanıcının izin verdiği sağlık alanları</dd></div>
+            <div class="info-item"><dt>Sistem admini</dt><dd>QR oluşturma, iptal ve başvuru onayı</dd></div>
+          </dl>
         </section>
       </main>
     </div>
   `;
   document.title = "LifeBand";
+}
+
+function bandIllustrationSvg() {
+  return `
+    <svg class="band-float" viewBox="0 0 300 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR kodlu akıllı bileklik illüstrasyonu">
+      <defs>
+        <linearGradient id="bandGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#14b8a6" />
+          <stop offset="100%" stop-color="#0f766e" />
+        </linearGradient>
+      </defs>
+
+      <circle class="band-pulse-ring" cx="150" cy="95" r="50" fill="none" stroke="#0f766e" stroke-width="2.5" />
+      <circle class="band-pulse-ring delay" cx="150" cy="95" r="50" fill="none" stroke="#0f766e" stroke-width="2.5" />
+
+      <rect x="10" y="55" width="280" height="80" rx="40" fill="url(#bandGradient)" />
+      <circle cx="34" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
+      <circle cx="50" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
+      <circle cx="250" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
+      <circle cx="266" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
+      <rect class="band-shine" x="10" y="55" width="280" height="30" rx="15" fill="#ffffff" opacity="0.35" />
+
+      <rect x="104" y="49" width="92" height="92" rx="16" fill="#ffffff" stroke="#d7e3ea" stroke-width="2" />
+
+      <rect x="114" y="54" width="24" height="24" fill="#14213d" />
+      <rect x="118" y="58" width="16" height="16" fill="#ffffff" />
+      <rect x="122" y="62" width="8" height="8" fill="#14213d" />
+
+      <rect x="162" y="54" width="24" height="24" fill="#14213d" />
+      <rect x="166" y="58" width="16" height="16" fill="#ffffff" />
+      <rect x="170" y="62" width="8" height="8" fill="#14213d" />
+
+      <rect x="114" y="102" width="24" height="24" fill="#14213d" />
+      <rect x="118" y="106" width="16" height="16" fill="#ffffff" />
+      <rect x="122" y="110" width="8" height="8" fill="#14213d" />
+
+      <g fill="#14213d">
+        <rect x="146" y="54" width="8" height="8" /><rect x="154" y="54" width="8" height="8" />
+        <rect x="138" y="62" width="8" height="8" /><rect x="146" y="62" width="8" height="8" /><rect x="154" y="62" width="8" height="8" />
+        <rect x="146" y="70" width="8" height="8" /><rect x="154" y="70" width="8" height="8" /><rect x="162" y="70" width="8" height="8" />
+        <rect x="114" y="78" width="8" height="8" /><rect x="130" y="78" width="8" height="8" /><rect x="146" y="78" width="8" height="8" /><rect x="162" y="78" width="8" height="8" /><rect x="178" y="78" width="8" height="8" />
+        <rect x="122" y="86" width="8" height="8" /><rect x="138" y="86" width="8" height="8" /><rect x="154" y="86" width="8" height="8" /><rect x="170" y="86" width="8" height="8" />
+        <rect x="114" y="94" width="8" height="8" /><rect x="130" y="94" width="8" height="8" /><rect x="146" y="94" width="8" height="8" /><rect x="162" y="94" width="8" height="8" /><rect x="178" y="94" width="8" height="8" />
+        <rect x="146" y="102" width="8" height="8" /><rect x="154" y="102" width="8" height="8" /><rect x="170" y="102" width="8" height="8" />
+        <rect x="138" y="110" width="8" height="8" /><rect x="146" y="110" width="8" height="8" /><rect x="170" y="110" width="8" height="8" />
+        <rect x="146" y="118" width="8" height="8" /><rect x="162" y="118" width="8" height="8" /><rect x="178" y="118" width="8" height="8" />
+      </g>
+    </svg>
+  `;
 }
 
 async function renderAdmin() {
