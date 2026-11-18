@@ -256,48 +256,62 @@ function renderLanding() {
 
 function bandIllustrationSvg() {
   return `
-    <svg class="band-float" viewBox="0 0 300 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR kodlu akıllı bileklik illüstrasyonu">
+    <svg class="band-float" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR kodlu akıllı bileklik illüstrasyonu, yandan görünüm">
       <defs>
-        <linearGradient id="bandGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#14b8a6" />
-          <stop offset="100%" stop-color="#0f766e" />
+        <linearGradient id="strapGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3a3a3d" />
+          <stop offset="45%" stop-color="#141416" />
+          <stop offset="100%" stop-color="#000000" />
+        </linearGradient>
+        <linearGradient id="bezelGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#46464a" />
+          <stop offset="100%" stop-color="#050506" />
+        </linearGradient>
+        <linearGradient id="screenGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#22304a" />
+          <stop offset="100%" stop-color="#0a1120" />
         </linearGradient>
       </defs>
 
-      <circle class="band-pulse-ring" cx="150" cy="95" r="50" fill="none" stroke="#0f766e" stroke-width="2.5" />
-      <circle class="band-pulse-ring delay" cx="150" cy="95" r="50" fill="none" stroke="#0f766e" stroke-width="2.5" />
+      <g transform="rotate(-28 105 155)">
+        <circle class="band-pulse-ring" cx="105" cy="153" r="46" fill="none" stroke="#14b8a6" stroke-width="2.5" />
+        <circle class="band-pulse-ring delay" cx="105" cy="153" r="46" fill="none" stroke="#14b8a6" stroke-width="2.5" />
 
-      <rect x="10" y="55" width="280" height="80" rx="40" fill="url(#bandGradient)" />
-      <circle cx="34" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
-      <circle cx="50" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
-      <circle cx="250" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
-      <circle cx="266" cy="95" r="4.5" fill="#0b5a4f" opacity="0.5" />
-      <rect class="band-shine" x="10" y="55" width="280" height="30" rx="15" fill="#ffffff" opacity="0.35" />
+        <rect x="150" y="128" width="168" height="58" rx="29" fill="url(#strapGradient)" />
+        <rect class="band-shine" x="150" y="128" width="168" height="20" rx="10" fill="#ffffff" opacity="0.12" />
+        <g fill="#000000" opacity="0.55">
+          <circle cx="196" cy="157" r="4.2" /><circle cx="214" cy="157" r="4.2" />
+          <circle cx="232" cy="157" r="4.2" /><circle cx="250" cy="157" r="4.2" />
+          <circle cx="268" cy="157" r="4.2" /><circle cx="286" cy="157" r="4.2" />
+        </g>
 
-      <rect x="104" y="49" width="92" height="92" rx="16" fill="#ffffff" stroke="#d7e3ea" stroke-width="2" />
+        <rect x="0" y="232" width="104" height="46" rx="23" fill="url(#strapGradient)" />
+        <ellipse cx="52" cy="255" rx="20" ry="13" fill="none" stroke="#2c2c2f" stroke-width="5" opacity="0.8" />
 
-      <rect x="114" y="54" width="24" height="24" fill="#14213d" />
-      <rect x="118" y="58" width="16" height="16" fill="#ffffff" />
-      <rect x="122" y="62" width="8" height="8" fill="#14213d" />
+        <rect x="38" y="68" width="134" height="174" rx="58" fill="url(#bezelGradient)" />
+        <rect x="53" y="83" width="104" height="144" rx="46" fill="url(#screenGradient)" />
 
-      <rect x="162" y="54" width="24" height="24" fill="#14213d" />
-      <rect x="166" y="58" width="16" height="16" fill="#ffffff" />
-      <rect x="170" y="62" width="8" height="8" fill="#14213d" />
+        <rect x="71" y="118" width="66" height="66" rx="6" fill="#ffffff" />
 
-      <rect x="114" y="102" width="24" height="24" fill="#14213d" />
-      <rect x="118" y="106" width="16" height="16" fill="#ffffff" />
-      <rect x="122" y="110" width="8" height="8" fill="#14213d" />
+        <rect x="74" y="119" width="27" height="27" fill="#0a1120" />
+        <rect x="78" y="123" width="19" height="19" fill="#ffffff" />
+        <rect x="83" y="128" width="9" height="9" fill="#0a1120" />
 
-      <g fill="#14213d">
-        <rect x="146" y="54" width="8" height="8" /><rect x="154" y="54" width="8" height="8" />
-        <rect x="138" y="62" width="8" height="8" /><rect x="146" y="62" width="8" height="8" /><rect x="154" y="62" width="8" height="8" />
-        <rect x="146" y="70" width="8" height="8" /><rect x="154" y="70" width="8" height="8" /><rect x="162" y="70" width="8" height="8" />
-        <rect x="114" y="78" width="8" height="8" /><rect x="130" y="78" width="8" height="8" /><rect x="146" y="78" width="8" height="8" /><rect x="162" y="78" width="8" height="8" /><rect x="178" y="78" width="8" height="8" />
-        <rect x="122" y="86" width="8" height="8" /><rect x="138" y="86" width="8" height="8" /><rect x="154" y="86" width="8" height="8" /><rect x="170" y="86" width="8" height="8" />
-        <rect x="114" y="94" width="8" height="8" /><rect x="130" y="94" width="8" height="8" /><rect x="146" y="94" width="8" height="8" /><rect x="162" y="94" width="8" height="8" /><rect x="178" y="94" width="8" height="8" />
-        <rect x="146" y="102" width="8" height="8" /><rect x="154" y="102" width="8" height="8" /><rect x="170" y="102" width="8" height="8" />
-        <rect x="138" y="110" width="8" height="8" /><rect x="146" y="110" width="8" height="8" /><rect x="170" y="110" width="8" height="8" />
-        <rect x="146" y="118" width="8" height="8" /><rect x="162" y="118" width="8" height="8" /><rect x="178" y="118" width="8" height="8" />
+        <rect x="110" y="119" width="27" height="27" fill="#0a1120" />
+        <rect x="114" y="123" width="19" height="19" fill="#ffffff" />
+        <rect x="119" y="128" width="9" height="9" fill="#0a1120" />
+
+        <rect x="74" y="155" width="27" height="27" fill="#0a1120" />
+        <rect x="78" y="159" width="19" height="19" fill="#ffffff" />
+        <rect x="83" y="164" width="9" height="9" fill="#0a1120" />
+
+        <g fill="#0a1120">
+          <rect x="101" y="119" width="9" height="9" /><rect x="101" y="128" width="9" height="9" /><rect x="101" y="137" width="9" height="9" />
+          <rect x="74" y="146" width="9" height="9" /><rect x="83" y="146" width="9" height="9" /><rect x="101" y="146" width="9" height="9" /><rect x="119" y="146" width="9" height="9" /><rect x="128" y="146" width="9" height="9" />
+          <rect x="101" y="155" width="9" height="9" /><rect x="110" y="155" width="9" height="9" /><rect x="128" y="155" width="9" height="9" />
+          <rect x="83" y="164" width="9" height="9" /><rect x="101" y="164" width="9" height="9" /><rect x="119" y="164" width="9" height="9" />
+          <rect x="101" y="173" width="9" height="9" /><rect x="110" y="173" width="9" height="9" /><rect x="128" y="173" width="9" height="9" />
+        </g>
       </g>
     </svg>
   `;
