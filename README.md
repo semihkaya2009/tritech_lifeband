@@ -6,9 +6,14 @@ LifeBand, QR bileklik üzerinden acil sağlık bilgisini kontrollü gösteren Fl
 
 1. Sistem admini web panelde sahipsiz QR oluşturur.
 2. QR ilk okutulduğunda kullanıcı web claim formunda ad, soyad, e-posta ve telefon girer.
-3. Kullanıcı Android uygulamasında aynı e-posta ile giriş yapınca QR hesabına bağlanır.
-4. Kullanıcı profili ve alan bazlı görünürlük ayarlarını mobil uygulamadan düzenler.
-5. Public QR sayfası yalnızca kullanıcının açık veya yarı görünür yaptığı alanları gösterir.
+3. Kullanıcı `/giris`'ten (webde) veya Android uygulamasında aynı e-posta ile
+   giriş yapınca QR hesabına bağlanır.
+4. Kullanıcı profili ve alan bazlı görünürlüğü artık **webden** (`/panelim`)
+   düzenler; mobil uygulama aynı işlevi sağlasa da öncelik webdedir.
+5. Onaylı sağlık çalışanı `/personel`'den başvurur/giriş yapar; QR okuttuğunda
+   hastanın "sağlık personeline açık" yaptığı ek alanları otomatik görür.
+6. Public QR sayfası yalnızca kullanıcının açık veya yarı görünür yaptığı
+   alanları gösterir.
 
 ## Kurulum
 

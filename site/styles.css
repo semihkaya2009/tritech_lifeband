@@ -355,6 +355,27 @@ h1 {
   resize: vertical;
 }
 
+.field-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.field-row .field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field-row .visibility-field {
+  flex: 0 0 168px;
+}
+
+.template-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .checkbox-row {
   display: flex;
   gap: 12px;

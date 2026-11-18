@@ -12,13 +12,68 @@ const FIELD_LABELS = {
   nationalId: "T.C. Kimlik",
   phone: "Telefon",
   email: "E-posta",
+  birthDate: "Doğum Tarihi",
   bloodType: "Kan Grubu",
   emergencyContact: "Acil Durum Yakını",
   allergies: "Alerjiler",
   chronicConditions: "Kronik Rahatsızlık",
+  chronicDiseases: "Kronik Rahatsızlık",
   medications: "Kullandığı İlaçlar",
+  notes: "Notlar",
   criticalNotes: "Kritik Not",
   lastUpdated: "Son Güncelleme"
+};
+
+// Editable profile fields, in form order. Mirrors lib/src/models/lifeband_profile.dart.
+const PROFILE_FIELDS = [
+  { key: "firstName", label: "Ad", required: true },
+  { key: "lastName", label: "Soyad", required: true },
+  { key: "nationalId", label: "T.C. Kimlik No" },
+  { key: "phone", label: "Telefon" },
+  { key: "email", label: "E-posta" },
+  { key: "birthDate", label: "Doğum Tarihi (YYYY-AA-GG)" },
+  { key: "bloodType", label: "Kan Grubu", required: true },
+  { key: "allergies", label: "Alerjiler" },
+  { key: "chronicDiseases", label: "Kronik Hastalıklar" },
+  { key: "medications", label: "Kullandığı İlaçlar" },
+  { key: "emergencyContact", label: "Acil Durum Yakını", required: true },
+  { key: "notes", label: "Notlar", multiline: true }
+];
+
+const VISIBILITY_LEVEL_LABELS = {
+  private: "Gizli",
+  public: "Açık",
+  masked: "Yarı görünür",
+  staff: "Sağlık personeli"
+};
+
+// Mirrors VisibilitySettings.minimal/emergency/staffFocused in
+// lib/src/models/lifeband_profile.dart, so mobile and web templates agree.
+const VISIBILITY_TEMPLATES = {
+  minimal: {
+    fullName: "masked",
+    bloodType: "public",
+    allergies: "public",
+    emergencyContact: "public"
+  },
+  emergency: {
+    fullName: "masked",
+    bloodType: "public",
+    allergies: "public",
+    emergencyContact: "public",
+    chronicDiseases: "public",
+    medications: "staff",
+    notes: "staff"
+  },
+  staffFocused: {
+    fullName: "masked",
+    bloodType: "public",
+    allergies: "public",
+    emergencyContact: "public",
+    chronicDiseases: "staff",
+    medications: "staff",
+    notes: "staff"
+  }
 };
 
 const demoProfile = {
@@ -190,6 +245,14 @@ async function render() {
     await renderStaffPortal();
     return;
   }
+  if (route.type === "login") {
+    await renderUserAuthPortal();
+    return;
+  }
+  if (route.type === "dashboard") {
+    await renderUserDashboard();
+    return;
+  }
   renderLanding();
 }
 
@@ -200,7 +263,14 @@ function getRoute() {
   }
   if (segments[0] === "admin") return { type: "admin" };
   if (segments[0] === "personel") return { type: "personel" };
+  if (segments[0] === "giris") return { type: "login" };
+  if (segments[0] === "panelim") return { type: "dashboard" };
   return { type: "home" };
+}
+
+function navigateTo(path) {
+  window.history.pushState({}, "", path);
+  void render();
 }
 
 function renderLanding() {
@@ -215,6 +285,7 @@ function renderLanding() {
           </div>
         </div>
         <nav class="top-actions" aria-label="Ana menü">
+          <a class="button secondary" href="/panelim">QR'larım</a>
           <a class="button secondary" href="/personel">Sağlık Personeli</a>
           <a class="button" href="/admin">Admin</a>
         </nav>
@@ -685,6 +756,358 @@ function renderStaffApproved(staffDoc) {
   });
 }
 
+async function attachClaimedQrsForCurrentUser() {
+  if (!firebaseReady || !currentUser || !currentUser.email) return;
+  try {
+    const email = currentUser.email.toLowerCase();
+    const snap = await firestoreApi.getDocs(
+      firestoreApi.query(
+        firestoreApi.collection(firestoreDb, "qrCodes"),
+        firestoreApi.where("claimEmail", "==", email),
+        firestoreApi.where("status", "==", "claimed")
+      )
+    );
+    for (const docSnapshot of snap.docs) {
+      await firestoreApi.updateDoc(docSnapshot.ref, {
+        status: "active",
+        ownerUid: currentUser.uid,
+        activatedAt: firestoreApi.serverTimestamp()
+      });
+      await firestoreApi.setDoc(
+        firestoreApi.doc(firestoreDb, "publicProfiles", docSnapshot.id),
+        { ownerUid: currentUser.uid, updatedAt: firestoreApi.serverTimestamp() },
+        { merge: true }
+      );
+    }
+  } catch (error) {
+    console.warn("Claimed QR attach failed.", error);
+  }
+}
+
+async function loadUserQrCodes() {
+  if (!firebaseReady || !currentUser) return [];
+  const snap = await firestoreApi.getDocs(
+    firestoreApi.query(
+      firestoreApi.collection(firestoreDb, "qrCodes"),
+      firestoreApi.where("ownerUid", "==", currentUser.uid)
+    )
+  );
+  return snap.docs.map((d) => ({ qrId: d.id, ...d.data() }));
+}
+
+async function renderUserAuthPortal(errorMessage = "", mode = "login") {
+  if (!firebaseReady) {
+    app.innerHTML = `
+      <main class="profile-page">
+        <div class="profile-head">
+          <div>
+            <p class="eyebrow">LifeBand</p>
+            <h1 class="profile-title">Giriş Yap</h1>
+          </div>
+          <a class="button secondary" href="/">Ana sayfa</a>
+        </div>
+        <section class="card stack">
+          <p class="alert">Bu özellik için Firebase bağlantısı gerekli.</p>
+        </section>
+      </main>
+    `;
+    document.title = "LifeBand Giriş";
+    return;
+  }
+
+  if (!authReady) {
+    renderLoading("Oturum kontrol ediliyor...");
+    return;
+  }
+
+  if (currentUser) {
+    navigateTo("/panelim");
+    return;
+  }
+
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand</p>
+          <h1 class="profile-title">${mode === "register" ? "Hesap Oluştur" : "Giriş Yap"}</h1>
+        </div>
+        <a class="button secondary" href="/">Ana sayfa</a>
+      </div>
+      <section class="card stack">
+        <p class="muted small">
+          QR'ınızı sahiplenirken girdiğiniz e-posta ile giriş yapın; QR otomatik olarak hesabınıza bağlanır ve sağlık profilinizi buradan düzenleyebilirsiniz.
+        </p>
+        ${errorMessage ? `<p class="alert">${escapeHtml(errorMessage)}</p>` : ""}
+        <form id="userAuthForm" class="form-grid">
+          <div class="field full">
+            <label for="userEmail">E-posta</label>
+            <input id="userEmail" name="email" type="email" autocomplete="username" required />
+          </div>
+          <div class="field full">
+            <label for="userPassword">Şifre</label>
+            <input id="userPassword" name="password" type="password" autocomplete="${mode === "register" ? "new-password" : "current-password"}" minlength="6" required />
+          </div>
+          <button class="button field full" type="submit">${mode === "register" ? "Hesap oluştur" : "Giriş yap"}</button>
+        </form>
+        <button class="button ghost" id="userAuthToggle" type="button">
+          ${mode === "register" ? "Zaten hesabım var" : "Hesabım yok, oluşturmak istiyorum"}
+        </button>
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand Giriş";
+
+  document.querySelector("#userAuthToggle")?.addEventListener("click", () => {
+    renderUserAuthPortal("", mode === "register" ? "login" : "register");
+  });
+
+  document.querySelector("#userAuthForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const email = normalizeEmail(form.get("email"));
+    const password = String(form.get("password") || "");
+    try {
+      if (mode === "register") {
+        await firebaseAuthApi.createUserWithEmailAndPassword(firebaseAuth, email, password);
+      } else {
+        await firebaseAuthApi.signInWithEmailAndPassword(firebaseAuth, email, password);
+      }
+      navigateTo("/panelim");
+    } catch (error) {
+      renderUserAuthPortal(authError(error, "Giriş yapılamadı."), mode);
+    }
+  });
+}
+
+async function renderUserDashboard() {
+  if (!firebaseReady) {
+    await renderUserAuthPortal();
+    return;
+  }
+
+  if (!authReady) {
+    renderLoading("Oturum kontrol ediliyor...");
+    return;
+  }
+
+  if (!currentUser) {
+    await renderUserAuthPortal();
+    return;
+  }
+
+  renderLoading("QR'larınız yükleniyor...");
+  await attachClaimedQrsForCurrentUser();
+  const qrCodes = await loadUserQrCodes();
+
+  if (qrCodes.length === 1) {
+    await renderProfileEditor(qrCodes[0]);
+    return;
+  }
+
+  const rows = qrCodes
+    .map(
+      (qr) => `
+      <tr>
+        <td><strong>${escapeHtml(qr.qrId)}</strong></td>
+        <td><span class="badge ${qr.status === "active" ? "ok" : "warn"}">${statusLabel(qr.status)}</span></td>
+        <td class="actions-cell">
+          <button class="icon-button" title="Düzenle" data-action="edit-qr" data-qrid="${escapeAttr(qr.qrId)}">✎</button>
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand</p>
+          <h1 class="profile-title">QR'larım</h1>
+        </div>
+        <button class="button secondary" id="userSignOut" type="button">Çıkış yap</button>
+      </div>
+      <section class="card stack">
+        ${
+          qrCodes.length === 0
+            ? `<p class="alert">Henüz size bağlı bir QR yok. Bilekliğinizdeki QR'ı okutup sahiplenme formunu bu e-posta ile doldurun, sonra bu sayfayı yenileyin.</p>`
+            : `
+          <table class="table">
+            <thead><tr><th>QR</th><th>Durum</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`
+        }
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand QR'larım";
+
+  document.querySelector("#userSignOut")?.addEventListener("click", async () => {
+    await firebaseAuthApi.signOut(firebaseAuth);
+    await render();
+  });
+
+  document.querySelectorAll("[data-action='edit-qr']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const qrId = button.getAttribute("data-qrid");
+      const qr = qrCodes.find((x) => x.qrId === qrId);
+      if (qr) await renderProfileEditor(qr);
+    });
+  });
+}
+
+async function renderProfileEditor(qr, statusMessage = "") {
+  renderLoading("Profil yükleniyor...");
+
+  const [profileSnap, visibilitySnap] = await Promise.all([
+    firestoreApi.getDoc(firestoreApi.doc(firestoreDb, "profiles", currentUser.uid)),
+    firestoreApi.getDoc(firestoreApi.doc(firestoreDb, "visibilitySettings", currentUser.uid))
+  ]);
+  const profile = profileSnap.exists() ? profileSnap.data() : {};
+  const visibility = visibilitySnap.exists() ? visibilitySnap.data().fields || {} : {};
+
+  const fieldRows = PROFILE_FIELDS.map((field) => {
+    const value = escapeAttr(profile[field.key] || "");
+    const level = visibility[field.key] || "private";
+    const options = Object.entries(VISIBILITY_LEVEL_LABELS)
+      .map(
+        ([optionValue, label]) =>
+          `<option value="${optionValue}" ${optionValue === level ? "selected" : ""}>${label}</option>`
+      )
+      .join("");
+    const input = field.multiline
+      ? `<textarea id="field-${field.key}" name="${field.key}">${escapeHtml(profile[field.key] || "")}</textarea>`
+      : `<input id="field-${field.key}" name="${field.key}" value="${value}" ${field.required ? "required" : ""} />`;
+
+    return `
+      <div class="field full">
+        <div class="field-row">
+          <div class="field">
+            <label for="field-${field.key}">${escapeHtml(field.label)}</label>
+            ${input}
+          </div>
+          <div class="field visibility-field">
+            <label for="visibility-${field.key}">Görünürlük</label>
+            <select id="visibility-${field.key}" name="visibility-${field.key}">${options}</select>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand QR: ${escapeHtml(qr.qrId)}</p>
+          <h1 class="profile-title">Sağlık Profili</h1>
+        </div>
+        <button class="button secondary" id="userSignOut" type="button">Çıkış yap</button>
+      </div>
+      <section class="card stack">
+        ${statusMessage ? `<p class="alert" style="background:#dff7ec;color:#047857;">${escapeHtml(statusMessage)}</p>` : ""}
+        <p class="muted small">
+          Her alan için görünürlüğü siz seçersiniz: <strong>Gizli</strong> (sadece siz), <strong>Açık</strong> (QR'ı okutan herkes),
+          <strong>Yarı görünür</strong> (herkese maskeli), <strong>Sağlık personeli</strong> (yalnızca onaylı personel).
+        </p>
+        <div class="template-row">
+          <button class="button ghost" type="button" data-template="minimal">Minimal şablon</button>
+          <button class="button ghost" type="button" data-template="emergency">Acil durum şablonu</button>
+          <button class="button ghost" type="button" data-template="staffFocused">Personel odaklı şablon</button>
+        </div>
+        <form id="profileForm" class="form-grid">
+          ${fieldRows}
+          <button class="button field full" type="submit">Kaydet</button>
+        </form>
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand Sağlık Profili";
+
+  document.querySelector("#userSignOut")?.addEventListener("click", async () => {
+    await firebaseAuthApi.signOut(firebaseAuth);
+    await render();
+  });
+
+  document.querySelectorAll("[data-template]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const template = VISIBILITY_TEMPLATES[button.getAttribute("data-template")] || {};
+      PROFILE_FIELDS.forEach((field) => {
+        const select = document.querySelector(`#visibility-${field.key}`);
+        if (!select) return;
+        select.value = template[field.key] || "private";
+      });
+      toast("Şablon uygulandı. Kaydetmeyi unutmayın.");
+    });
+  });
+
+  document.querySelector("#profileForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const newProfile = {};
+    const newVisibility = {};
+    PROFILE_FIELDS.forEach((field) => {
+      newProfile[field.key] = cleanText(form.get(field.key));
+      newVisibility[field.key] = String(form.get(`visibility-${field.key}`) || "private");
+    });
+    newProfile.fullName = `${newProfile.firstName} ${newProfile.lastName}`.trim();
+    newVisibility.fullName = newVisibility.fullName || "masked";
+
+    try {
+      await saveProfileAndVisibility(qr.qrId, newProfile, newVisibility);
+      toast("Profil kaydedildi.");
+      await renderProfileEditor({ ...qr, status: "active" }, "Profil kaydedildi.");
+    } catch (error) {
+      console.error(error);
+      toast("Kaydetme başarısız: " + error.message);
+    }
+  });
+}
+
+async function saveProfileAndVisibility(qrId, profile, visibility) {
+  const uid = currentUser.uid;
+  const qrRef = firestoreApi.doc(firestoreDb, "qrCodes", qrId);
+  const qrSnap = await firestoreApi.getDoc(qrRef);
+  if (qrSnap.exists() && qrSnap.data().status === "claimed") {
+    await firestoreApi.updateDoc(qrRef, {
+      status: "active",
+      ownerUid: uid,
+      activatedAt: firestoreApi.serverTimestamp()
+    });
+  }
+
+  await firestoreApi.setDoc(
+    firestoreApi.doc(firestoreDb, "profiles", uid),
+    { ...profile, uid, updatedAt: firestoreApi.serverTimestamp() },
+    { merge: true }
+  );
+  await firestoreApi.setDoc(
+    firestoreApi.doc(firestoreDb, "visibilitySettings", uid),
+    { uid, fields: visibility, updatedAt: firestoreApi.serverTimestamp() },
+    { merge: true }
+  );
+  await firestoreApi.setDoc(
+    firestoreApi.doc(firestoreDb, "publicProfiles", qrId),
+    {
+      qrId,
+      ownerUid: uid,
+      displayFields: compileDisplayFields(profile, visibility, "public"),
+      visibility,
+      updatedAt: firestoreApi.serverTimestamp()
+    },
+    { merge: true }
+  );
+  await firestoreApi.setDoc(
+    firestoreApi.doc(firestoreDb, "staffProfiles", qrId),
+    {
+      qrId,
+      ownerUid: uid,
+      displayFields: compileDisplayFields(profile, visibility, "staff"),
+      updatedAt: firestoreApi.serverTimestamp()
+    },
+    { merge: true }
+  );
+}
+
 function renderAdminPanel(state) {
   const pendingCount = state.staffApplications.filter((x) => x.status === "pending").length;
   const activeQrCount = state.qrCodes.filter((x) => x.status === "active").length;
@@ -1004,7 +1427,7 @@ async function renderFirebaseQrProfile(qrId) {
       return;
     }
 
-    renderProfileCard(qrId, "Profil henüz tamamlanmadı.", {});
+    renderProfileCard(qrId, "Profil henüz tamamlanmadı.", {}, false, true);
   } catch (error) {
     renderProfileCard(qrId, "QR okunamadı", {
       criticalNotes: "Bağlantı veya yetki hatası oluştu. Lütfen tekrar deneyin."
@@ -1122,8 +1545,8 @@ function bindClaimForm(qrId) {
         updatedAt: firestoreApi.serverTimestamp()
       });
 
-      toast("QR kaydı başlatıldı. Mobil uygulamada aynı e-posta ile giriş yapınca QR hesabına düşecek.");
-      await renderFirebaseQrProfile(qrId);
+      toast("QR kaydı başlatıldı. Şimdi aynı e-posta ile giriş yapıp sağlık profilinizi doldurun.");
+      navigateTo("/giris");
     } catch (error) {
       console.error(error);
       renderClaimForm(qrId, "QR kaydı başlatılamadı. Bilgileri kontrol edip tekrar deneyin.");
@@ -1132,7 +1555,7 @@ function bindClaimForm(qrId) {
   });
 }
 
-function renderProfileCard(qrId, title, displayFields, staffMode = false) {
+function renderProfileCard(qrId, title, displayFields, staffMode = false, incomplete = false) {
   app.innerHTML = `
     <main class="profile-page">
       <div class="profile-head">
@@ -1170,7 +1593,9 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false) {
             <a class="button secondary" href="/q/${encodeURIComponent(qrId)}">Public görünüm</a>
           </div>`
             : !staffMode
-              ? `<p class="footer-note"><a href="/personel">Sağlık personeli misiniz? Giriş yapın</a> — onaylı hesaplar ek klinik bilgileri otomatik görür.</p>`
+              ? incomplete
+                ? `<p class="footer-note"><a href="/giris">Bu QR'ın sahibi misiniz? Giriş yapıp profilinizi tamamlayın</a></p>`
+                : `<p class="footer-note"><a href="/personel">Sağlık personeli misiniz? Giriş yapın</a> — onaylı hesaplar ek klinik bilgileri otomatik görür.</p>`
               : ""
         }
       </section>
