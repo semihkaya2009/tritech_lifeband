@@ -246,6 +246,54 @@ Gerçek prod aşamasında sistem admin için Firebase custom claim `systemAdmin:
 
 Bu başlıklar sonraki faza bırakılır; veri modeli bu fazları destekleyecek şekilde genişleyebilir.
 
+### Sonraki Faz Detayları (2026-11-18 toplantı notları)
+
+Yukarıdaki başlıkların MVP sonrası nasıl işleyeceğine dair netleşen detaylar:
+
+**Hastane admin paneli / sağlık çalışanı onayı**
+
+- Sağlık çalışanı başvurusu, bağlı olduğu hastaneye/kuruma yönlendirilir; o kurum
+  (veya sistem admin) başvuruyu onaylar. Başvuru formunda personel hangi
+  hastanede çalıştığını belirtir.
+- Onay tek seferlik değildir: **her 6 ayda bir yeniden onay** istenir. `medicalStaff/{uid}`
+  dokümanına bu amaçla `approvedAt` yanında `reapprovalDueAt` alanı eklenebilir;
+  süre dolduğunda `status` otomatik `pending`/`expired`'a düşer.
+- Admin panel yalnızca başvuru onayı değil, **QR oluşturma** işlemini de barındırır
+  (bu kısım MVP'de zaten mevcut `/admin` ile örtüşüyor; hastane admini eklendiğinde
+  bu panelin bir hastane-scoped görünümü olur).
+
+**Tam Telegram doğrulama**
+
+- Kullanıcı ilk kullanımda telefon numarasını girer, Telegram üzerinden
+  gönderilen kodla eşleştirme yapılır (bugünkü e-posta/şifre girişine ek bir
+  doğrulama katmanı, onun yerine geçmez).
+- Bu doğrulama da süreklidir: **her 3 ayda bir tekrar istenir**. `users/{uid}`'e
+  `phoneVerifiedAt` ve `phoneReverifyDueAt` alanları eklenir.
+- **Bildirim sistemi**: hem 6 aylık personel onayı hem 3 aylık telefon doğrulaması
+  için süre dolmadan önce kullanıcıya/personele hatırlatma bildirimi gönderilir
+  (push bildirim veya Telegram mesajı). Bu, periyotları takip eden bir
+  zamanlanmış görev (scheduled function) gerektirir.
+
+**Doktorun QR okutup doğrudan güncellemesi**
+
+- Onaylı sağlık personeli, hastanın QR'ını mobil uygulamadan okutarak "bu hastaya
+  ben baktım" akışına girer ve hastanın `profiles/{uid}` kaydındaki hastalık/ilaç
+  bilgilerini **doğrudan güncelleyebilir**. Hasta bunu kendisi tekrar girmek
+  zorunda kalmaz. Bu, `profiles/{uid}` için sadece-sahip kuralının onaylı personele
+  de yazma izni verecek şekilde genişletilmesini gerektirir (ileride denetim
+  amacıyla `accessLogs`'a kim-ne-zaman-değiştirdi kaydı eklenmeli).
+
+**Yapay zeka ile profil güncelleme**
+
+- Kullanıcı yapay zeka ile sohbet ederek profil alanlarını güncelleyebilir
+  (örn. "dün doktor bana X ilacını yazdı" dediğinde `medications` alanına eklenir).
+
+**Aile hekimi özel yetki modeli**
+
+- İleride eklenecek bir rol; eklendiğinde kullanıcının sağlık profilini
+  **yalnızca aile hekimi değiştirebilir** hale gelir (kullanıcının kendi
+  düzenleme yetkisi bu alanlarda kısıtlanır ya da öneri/onay akışına döner).
+
 ## Başarı Kriterleri
 
 - Admin paneline herkes giremez.
