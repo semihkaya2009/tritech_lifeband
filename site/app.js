@@ -253,6 +253,10 @@ async function render() {
     await renderUserDashboard();
     return;
   }
+  if (route.type === "account") {
+    await renderAccount();
+    return;
+  }
   renderLanding();
 }
 
@@ -265,6 +269,7 @@ function getRoute() {
   if (segments[0] === "personel") return { type: "personel" };
   if (segments[0] === "giris") return { type: "login" };
   if (segments[0] === "panelim") return { type: "dashboard" };
+  if (segments[0] === "hesabim") return { type: "account" };
   return { type: "home" };
 }
 
@@ -289,9 +294,11 @@ function renderLanding() {
           <a class="nav-link" href="#cozum">Çözüm</a>
           <a class="nav-link" href="#roller">Roller</a>
           <a class="nav-link" href="#surec">QR Süreci</a>
-          <a class="button secondary" href="/panelim">QR'larım</a>
-          <a class="button secondary" href="/personel">Sağlık Personeli</a>
-          <a class="button" href="/admin">Admin</a>
+          ${
+            firebaseReady && currentUser
+              ? `<a class="button" href="/hesabim">Hesabım</a>`
+              : `<a class="button" href="/giris">Giriş Yap</a>`
+          }
         </nav>
       </header>
 
@@ -818,7 +825,13 @@ async function loadUserQrCodes() {
   return snap.docs.map((d) => ({ qrId: d.id, ...d.data() }));
 }
 
-async function renderUserAuthPortal(errorMessage = "", mode = "login") {
+const ROLE_TABS = {
+  user: { label: "Kullanıcı", redirect: "/panelim", allowRegister: true },
+  staff: { label: "Sağlık Personeli", redirect: "/personel", allowRegister: true },
+  admin: { label: "Admin", redirect: "/admin", allowRegister: false }
+};
+
+async function renderUserAuthPortal(errorMessage = "", mode = "login", role = "user") {
   if (!firebaseReady) {
     app.innerHTML = `
       <main class="profile-page">
@@ -844,22 +857,40 @@ async function renderUserAuthPortal(errorMessage = "", mode = "login") {
   }
 
   if (currentUser) {
-    navigateTo("/panelim");
+    navigateTo("/hesabim");
     return;
   }
+
+  const activeTab = ROLE_TABS[role] ? role : "user";
+  const tabButtons = Object.entries(ROLE_TABS)
+    .map(
+      ([key, tab]) =>
+        `<button class="button ${key === activeTab ? "" : "secondary"}" type="button" data-role="${key}">${tab.label}</button>`
+    )
+    .join("");
+  const canRegister = ROLE_TABS[activeTab].allowRegister;
+  const effectiveMode = canRegister ? mode : "login";
 
   app.innerHTML = `
     <main class="profile-page">
       <div class="profile-head">
         <div>
           <p class="eyebrow">LifeBand</p>
-          <h1 class="profile-title">${mode === "register" ? "Hesap Oluştur" : "Giriş Yap"}</h1>
+          <h1 class="profile-title">${effectiveMode === "register" ? "Hesap Oluştur" : "Giriş Yap"}</h1>
         </div>
         <a class="button secondary" href="/">Ana sayfa</a>
       </div>
       <section class="card stack">
+        <p class="muted small">Hangi rolle giriş yapmak istiyorsunuz?</p>
+        <div class="template-row" id="roleTabs">${tabButtons}</div>
         <p class="muted small">
-          QR'ınızı sahiplenirken girdiğiniz e-posta ile giriş yapın; QR otomatik olarak hesabınıza bağlanır ve sağlık profilinizi buradan düzenleyebilirsiniz.
+          ${
+            activeTab === "admin"
+              ? "Bu panel yalnızca adminUsers koleksiyonunda kaydı olan hesaplara açılır."
+              : activeTab === "staff"
+                ? "Onaylı sağlık personeli, hastaların size açtığı QR'ları okuttuğunuzda ek klinik bilgileri görür."
+                : "QR'ınızı sahiplenirken girdiğiniz e-posta ile giriş yapın; QR otomatik olarak hesabınıza bağlanır."
+          }
         </p>
         ${errorMessage ? `<p class="alert">${escapeHtml(errorMessage)}</p>` : ""}
         <form id="userAuthForm" class="form-grid">
@@ -869,20 +900,30 @@ async function renderUserAuthPortal(errorMessage = "", mode = "login") {
           </div>
           <div class="field full">
             <label for="userPassword">Şifre</label>
-            <input id="userPassword" name="password" type="password" autocomplete="${mode === "register" ? "new-password" : "current-password"}" minlength="6" required />
+            <input id="userPassword" name="password" type="password" autocomplete="${effectiveMode === "register" ? "new-password" : "current-password"}" minlength="6" required />
           </div>
-          <button class="button field full" type="submit">${mode === "register" ? "Hesap oluştur" : "Giriş yap"}</button>
+          <button class="button field full" type="submit">${effectiveMode === "register" ? "Hesap oluştur" : "Giriş yap"}</button>
         </form>
-        <button class="button ghost" id="userAuthToggle" type="button">
-          ${mode === "register" ? "Zaten hesabım var" : "Hesabım yok, oluşturmak istiyorum"}
-        </button>
+        ${
+          canRegister
+            ? `<button class="button ghost" id="userAuthToggle" type="button">
+                ${effectiveMode === "register" ? "Zaten hesabım var" : "Hesabım yok, oluşturmak istiyorum"}
+              </button>`
+            : ""
+        }
       </section>
     </main>
   `;
   document.title = "LifeBand Giriş";
 
+  document.querySelectorAll("[data-role]").forEach((button) => {
+    button.addEventListener("click", () => {
+      renderUserAuthPortal("", "login", button.getAttribute("data-role"));
+    });
+  });
+
   document.querySelector("#userAuthToggle")?.addEventListener("click", () => {
-    renderUserAuthPortal("", mode === "register" ? "login" : "register");
+    renderUserAuthPortal("", effectiveMode === "register" ? "login" : "register", activeTab);
   });
 
   document.querySelector("#userAuthForm")?.addEventListener("submit", async (event) => {
@@ -891,15 +932,82 @@ async function renderUserAuthPortal(errorMessage = "", mode = "login") {
     const email = normalizeEmail(form.get("email"));
     const password = String(form.get("password") || "");
     try {
-      if (mode === "register") {
+      if (effectiveMode === "register") {
         await firebaseAuthApi.createUserWithEmailAndPassword(firebaseAuth, email, password);
       } else {
         await firebaseAuthApi.signInWithEmailAndPassword(firebaseAuth, email, password);
       }
-      navigateTo("/panelim");
+      navigateTo(ROLE_TABS[activeTab].redirect);
     } catch (error) {
-      renderUserAuthPortal(authError(error, "Giriş yapılamadı."), mode);
+      renderUserAuthPortal(authError(error, "Giriş yapılamadı."), effectiveMode, activeTab);
     }
+  });
+}
+
+async function renderAccount() {
+  if (!firebaseReady) {
+    await renderUserAuthPortal();
+    return;
+  }
+
+  if (!authReady) {
+    renderLoading("Oturum kontrol ediliyor...");
+    return;
+  }
+
+  if (!currentUser) {
+    await renderUserAuthPortal();
+    return;
+  }
+
+  renderLoading("Hesap bilgileri yükleniyor...");
+  const [isAdmin, staffDoc, qrCodes] = await Promise.all([
+    isCurrentSystemAdmin(),
+    getCurrentMedicalStaffDoc(),
+    loadUserQrCodes()
+  ]);
+  const isApprovedStaffUser = staffDoc?.status === "approved";
+
+  const roleBadges = [
+    `<span class="badge ok">Kullanıcı</span>`,
+    isApprovedStaffUser ? `<span class="badge ok">Onaylı Sağlık Personeli</span>` : "",
+    isAdmin ? `<span class="badge ok">Sistem Admini</span>` : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  app.innerHTML = `
+    <main class="profile-page">
+      <div class="profile-head">
+        <div>
+          <p class="eyebrow">LifeBand</p>
+          <h1 class="profile-title">Hesabım</h1>
+        </div>
+        <button class="button secondary" id="accountSignOut" type="button">Çıkış yap</button>
+      </div>
+      <section class="card stack">
+        <dl class="info-list">
+          <div class="info-item"><dt>E-posta</dt><dd>${escapeHtml(currentUser.email || "")}</dd></div>
+          <div class="info-item"><dt>Roller</dt><dd>${roleBadges}</dd></div>
+          <div class="info-item"><dt>Bağlı QR sayısı</dt><dd>${qrCodes.length}</dd></div>
+        </dl>
+        <div class="hero-actions">
+          <a class="button" href="/panelim">QR'larım ve Profilim</a>
+          ${
+            isApprovedStaffUser
+              ? `<a class="button secondary" href="/personel">Sağlık Personeli Paneli</a>`
+              : `<a class="button secondary" href="/personel">Sağlık Çalışanı Başvurusu</a>`
+          }
+          ${isAdmin ? `<a class="button secondary" href="/admin">Admin Paneli</a>` : ""}
+        </div>
+      </section>
+    </main>
+  `;
+  document.title = "LifeBand Hesabım";
+
+  document.querySelector("#accountSignOut")?.addEventListener("click", async () => {
+    await firebaseAuthApi.signOut(firebaseAuth);
+    navigateTo("/");
   });
 }
 
