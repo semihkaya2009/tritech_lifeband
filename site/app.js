@@ -1793,7 +1793,7 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false, incomp
           Acil durumda bu bilgiler hastanın belirlediği görünürlük ayarlarına göre gösterilir.
         </div>
         <dl class="info-list">
-          ${renderInfoItems(displayFields)}
+          ${renderInfoItems(omitKeys(displayFields, ["fullName", "firstName", "lastName"]))}
         </dl>
         ${
           !firebaseReady
@@ -2127,6 +2127,14 @@ function createQrCanvas(url, width, margin) {
   return canvas;
 }
 
+function omitKeys(obj, keys) {
+  const result = {};
+  Object.entries(obj || {}).forEach(([key, value]) => {
+    if (!keys.includes(key)) result[key] = value;
+  });
+  return result;
+}
+
 function renderInfoItems(fields) {
   const entries = Object.entries(fields || {}).filter(([, value]) => String(value ?? "").trim());
   if (entries.length === 0) {
@@ -2156,7 +2164,7 @@ function statusLabel(status) {
   if (status === "approved") return "Onaylı";
   if (status === "rejected") return "Reddedildi";
   if (status === "unclaimed") return "Sahipsiz";
-  if (status === "claimed") return "Claim edildi";
+  if (status === "claimed") return "Sahiplenildi (profil bekleniyor)";
   if (status === "active") return "Aktif";
   if (status === "revoked") return "Pasif";
   return "Bekliyor";
