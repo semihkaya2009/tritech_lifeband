@@ -170,6 +170,30 @@ async function bootstrap() {
   window.addEventListener("popstate", () => {
     void render();
   });
+  document.addEventListener("click", handleInternalLinkClick);
+}
+
+// Every <a href="/..."> in this app pointed at an internal route, but
+// nothing turned those clicks into client-side navigation — each one did a
+// full browser reload, which re-initializes Firebase Auth from scratch and
+// shows a signed-out flash before the session is restored. This makes
+// internal links navigate via navigateTo() instead, keeping the page (and
+// the already-resolved auth state) in place. External links, #anchors,
+// downloads, and modified clicks (new tab, etc.) are left alone.
+function handleInternalLinkClick(event) {
+  if (event.defaultPrevented || event.button !== 0) return;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+  const link = event.target.closest("a");
+  if (!link) return;
+  if (link.target && link.target !== "_self") return;
+  if (link.hasAttribute("download")) return;
+
+  const href = link.getAttribute("href");
+  if (!href || !href.startsWith("/") || href.startsWith("//")) return;
+
+  event.preventDefault();
+  navigateTo(href);
 }
 
 async function initFirebase() {
@@ -667,7 +691,10 @@ function renderStaffApplicationForm(errorMessage = "") {
           <p class="eyebrow">LifeBand</p>
           <h1 class="profile-title">Sağlık Çalışanı Başvurusu</h1>
         </div>
-        <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+        <div class="top-actions">
+          <a class="button secondary" href="/hesabim">Hesabım</a>
+          <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+        </div>
       </div>
       <section class="card stack">
         <p class="muted small">
@@ -733,7 +760,10 @@ function renderStaffApplicationStatus(application) {
           <p class="eyebrow">LifeBand</p>
           <h1 class="profile-title">Başvurunuz İnceleniyor</h1>
         </div>
-        <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+        <div class="top-actions">
+          <a class="button secondary" href="/hesabim">Hesabım</a>
+          <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+        </div>
       </div>
       <section class="card stack">
         <p class="alert">
@@ -765,7 +795,10 @@ function renderStaffApproved(staffDoc) {
           <p class="eyebrow">LifeBand</p>
           <h1 class="profile-title">Onaylı Sağlık Personeli</h1>
         </div>
-        <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+        <div class="top-actions">
+          <a class="button secondary" href="/hesabim">Hesabım</a>
+          <button class="button secondary" id="staffSignOut" type="button">Çıkış yap</button>
+        </div>
       </div>
       <section class="card stack">
         <p class="alert" style="background:#dff7ec;color:#047857;">
@@ -1086,7 +1119,10 @@ async function renderUserDashboard() {
           <p class="eyebrow">LifeBand</p>
           <h1 class="profile-title">QR'larım</h1>
         </div>
-        <button class="button secondary" id="userSignOut" type="button">Çıkış yap</button>
+        <div class="top-actions">
+          <a class="button secondary" href="/hesabim">Hesabım</a>
+          <button class="button secondary" id="userSignOut" type="button">Çıkış yap</button>
+        </div>
       </div>
       <section class="card stack">
         ${
@@ -1162,7 +1198,10 @@ async function renderProfileEditor(qr, statusMessage = "") {
           <p class="eyebrow">LifeBand QR: ${escapeHtml(qr.qrId)}</p>
           <h1 class="profile-title">Sağlık Profili</h1>
         </div>
-        <button class="button secondary" id="userSignOut" type="button">Çıkış yap</button>
+        <div class="top-actions">
+          <a class="button secondary" href="/hesabim">Hesabım</a>
+          <button class="button secondary" id="userSignOut" type="button">Çıkış yap</button>
+        </div>
       </div>
       <section class="card stack">
         ${statusMessage ? `<p class="alert" style="background:#dff7ec;color:#047857;">${escapeHtml(statusMessage)}</p>` : ""}
@@ -1288,7 +1327,7 @@ function renderAdminPanel(state) {
         <nav class="top-actions" aria-label="Ana menü">
           <a class="button secondary" href="/">Ana sayfa</a>
           <a class="button secondary" href="/q/${encodeURIComponent(previewQr.qrId)}">Son QR</a>
-          <a class="button" href="/admin">Admin</a>
+          <a class="button secondary" href="/hesabim">Hesabım</a>
         </nav>
       </header>
 
