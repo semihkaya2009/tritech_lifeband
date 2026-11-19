@@ -147,6 +147,32 @@ class FirestoreService {
   }
 
   Future<void> attachClaimedQrToUser(QrCodeRecord qr, String uid) async {
+    // The web claim form only collects name/national id to build a masked
+    // preview; it never persists them anywhere the owner can see again.
+    // Seed profiles/{uid} from the claim data, once, so filling out the
+    // claim form isn't wasted work.
+    final profileRef = _db.collection('profiles').doc(uid);
+    final profileSnap = await profileRef.get();
+    if (!profileSnap.exists) {
+      final hasClaimData = [
+        qr.claimFirstName,
+        qr.claimLastName,
+        qr.claimNationalId,
+        qr.claimPhone,
+      ].any((value) => value != null && value.trim().isNotEmpty);
+      if (hasClaimData) {
+        await profileRef.set({
+          'uid': uid,
+          'firstName': qr.claimFirstName ?? '',
+          'lastName': qr.claimLastName ?? '',
+          'nationalId': qr.claimNationalId ?? '',
+          'phone': qr.claimPhone ?? '',
+          'email': qr.claimEmail ?? '',
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    }
+
     await _db.collection('qrCodes').doc(qr.qrId).update({
       'status': 'active',
       'ownerUid': uid,

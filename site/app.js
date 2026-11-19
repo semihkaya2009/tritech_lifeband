@@ -797,6 +797,30 @@ async function attachClaimedQrsForCurrentUser() {
         firestoreApi.where("status", "==", "claimed")
       )
     );
+    if (snap.docs.length === 0) return;
+
+    // The claim form only collects name/national id to show a masked
+    // preview; it never persists them anywhere the owner can see again.
+    // Seed profiles/{uid} from the first claimed QR's data, once, so that
+    // filling out the claim form isn't wasted work.
+    const profileRef = firestoreApi.doc(firestoreDb, "profiles", currentUser.uid);
+    const profileSnap = await firestoreApi.getDoc(profileRef);
+    if (!profileSnap.exists()) {
+      const claimData = snap.docs[0].data();
+      const seed = {
+        uid: currentUser.uid,
+        firstName: claimData.claimFirstName || "",
+        lastName: claimData.claimLastName || "",
+        nationalId: claimData.claimNationalId || "",
+        phone: claimData.claimPhone || "",
+        email: claimData.claimEmail || email,
+        updatedAt: firestoreApi.serverTimestamp()
+      };
+      if (seed.firstName || seed.lastName || seed.nationalId || seed.phone) {
+        await firestoreApi.setDoc(profileRef, seed, { merge: true });
+      }
+    }
+
     for (const docSnapshot of snap.docs) {
       await firestoreApi.updateDoc(docSnapshot.ref, {
         status: "active",
@@ -1651,7 +1675,10 @@ function bindClaimForm(qrId) {
         claimEmail: email,
         claimPhone: phone,
         claimUid,
-        claimedAt: firestoreApi.serverTimestamp()
+        claimedAt: firestoreApi.serverTimestamp(),
+        claimFirstName: firstName,
+        claimLastName: lastName,
+        claimNationalId: nationalId
       });
 
       const fields = {

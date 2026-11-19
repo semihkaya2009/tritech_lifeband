@@ -204,6 +204,9 @@ class QrCodeRecord {
   final String? ownerEmail;
   final String? claimEmail;
   final String? claimPhone;
+  final String? claimFirstName;
+  final String? claimLastName;
+  final String? claimNationalId;
   final DateTime? createdAt;
   final DateTime? claimedAt;
   final DateTime? revokedAt;
@@ -216,6 +219,9 @@ class QrCodeRecord {
     this.ownerEmail,
     this.claimEmail,
     this.claimPhone,
+    this.claimFirstName,
+    this.claimLastName,
+    this.claimNationalId,
     this.createdAt,
     this.claimedAt,
     this.revokedAt,
@@ -245,6 +251,9 @@ class QrCodeRecord {
       ownerEmail: map['ownerEmail']?.toString(),
       claimEmail: map['claimEmail']?.toString(),
       claimPhone: map['claimPhone']?.toString(),
+      claimFirstName: map['claimFirstName']?.toString(),
+      claimLastName: map['claimLastName']?.toString(),
+      claimNationalId: map['claimNationalId']?.toString(),
       createdAt: _parseDate(map['createdAt']),
       claimedAt: _parseDate(map['claimedAt']),
       revokedAt: _parseDate(map['revokedAt']),
