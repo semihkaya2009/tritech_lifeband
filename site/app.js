@@ -888,7 +888,14 @@ const ROLE_TABS = {
   admin: { label: "Admin", redirect: "/admin", allowRegister: false }
 };
 
-async function renderUserAuthPortal(errorMessage = "", mode = "login", role = "user") {
+async function renderUserAuthPortal(errorMessage = "", mode = "login", role = null) {
+  // Re-read on every call (including the re-renders tab clicks trigger)
+  // rather than threading it through function args: the URL itself only
+  // changes on real navigation, so this stays correct across those re-renders.
+  const authParams = new URLSearchParams(window.location.search);
+  const returnTo = authParams.get("return");
+  const effectiveRole = role || authParams.get("role") || "user";
+
   if (!firebaseReady) {
     app.innerHTML = `
       <main class="profile-page">
@@ -914,11 +921,11 @@ async function renderUserAuthPortal(errorMessage = "", mode = "login", role = "u
   }
 
   if (currentUser) {
-    navigateTo("/hesabim");
+    navigateTo(returnTo ? decodeURIComponent(returnTo) : "/hesabim");
     return;
   }
 
-  const activeTab = ROLE_TABS[role] ? role : "user";
+  const activeTab = ROLE_TABS[effectiveRole] ? effectiveRole : "user";
   const tabButtons = Object.entries(ROLE_TABS)
     .map(
       ([key, tab]) =>
@@ -999,7 +1006,7 @@ async function renderUserAuthPortal(errorMessage = "", mode = "login", role = "u
       // 'user' destination, which only happened to trigger it because
       // /panelim's own loader calls this too.
       await attachClaimedQrsForCurrentUser();
-      navigateTo(ROLE_TABS[activeTab].redirect);
+      navigateTo(returnTo ? decodeURIComponent(returnTo) : ROLE_TABS[activeTab].redirect);
     } catch (error) {
       renderUserAuthPortal(authError(error, "Giriş yapılamadı."), effectiveMode, activeTab);
     }
@@ -1768,19 +1775,19 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false, incomp
         </div>
         <a class="button secondary" href="/admin">Admin</a>
       </div>
-      <section class="card stack">
+      <section class="card stack profile-mode-${staffMode ? "staff" : "public"}">
+        <div class="mode-banner ${staffMode ? "mode-banner--staff" : "mode-banner--public"}">
+          ${
+            staffMode
+              ? "Sağlık Personeli Görünümü — onaylı personel olarak giriş yaptınız, hastanın ek klinik bilgileri de gösteriliyor."
+              : "Herkese Açık Görünüm — yalnızca hastanın herkese açık yaptığı bilgiler gösteriliyor."
+          }
+        </div>
         <div class="card-header">
           <div>
             <h2>${escapeHtml(displayName(displayFields, firebaseReady ? {} : demoProfile.fields))}</h2>
             <p class="muted small">QR: ${escapeHtml(qrId)}</p>
           </div>
-          ${
-            staffMode
-              ? `<span class="badge ok">Sağlık personeli görünümü</span>`
-              : !firebaseReady
-                ? `<span class="badge warn">Public görünüm (demo)</span>`
-                : ""
-          }
         </div>
         <div class="alert">
           Acil durumda bu bilgiler hastanın belirlediği görünürlük ayarlarına göre gösterilir.
@@ -1797,8 +1804,8 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false, incomp
           </div>`
             : !staffMode
               ? incomplete
-                ? `<p class="footer-note"><a href="/giris">Bu QR'ın sahibi misiniz? Giriş yapıp profilinizi tamamlayın</a></p>`
-                : `<p class="footer-note"><a href="/personel">Sağlık personeli misiniz? Giriş yapın</a> — onaylı hesaplar ek klinik bilgileri otomatik görür.</p>`
+                ? `<p class="footer-note"><a href="/giris?return=${encodeURIComponent(`/q/${qrId}`)}">Bu QR'ın sahibi misiniz? Giriş yapıp profilinizi tamamlayın</a></p>`
+                : `<p class="footer-note"><a href="/giris?role=staff&return=${encodeURIComponent(`/q/${qrId}`)}">Sağlık personeli misiniz? Giriş yapın</a> — onaylı hesaplar ek klinik bilgileri otomatik görür.</p>`
               : ""
         }
       </section>

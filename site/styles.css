@@ -299,6 +299,36 @@ h1 {
   padding: 20px;
 }
 
+/* Profile view mode: the single biggest source of confusion on the public
+   QR page was that the public and staff views looked identical apart from
+   a small badge. This makes the whole card unmistakably different. */
+.profile-mode-public {
+  border-top: 4px solid var(--secondary);
+}
+
+.profile-mode-staff {
+  border-top: 4px solid var(--ok);
+  background: #f3fbf8;
+}
+
+.mode-banner {
+  margin: -20px -20px 16px;
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mode-banner--public {
+  background: #eef2f6;
+  color: var(--secondary);
+}
+
+.mode-banner--staff {
+  background: #d7f5ea;
+  color: #04603f;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
