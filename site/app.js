@@ -1,4 +1,4 @@
-import { compileDisplayFields } from "./visibility.js";
+import { compileDisplayFields, compileCustomDisplayFields, maskField } from "./visibility.js";
 
 const DEMO_QR_ID = "LB_DEMO_20261011";
 const STORAGE_KEY = "lifeband.admin.demo.v1";
@@ -9,36 +9,28 @@ const FIELD_LABELS = {
   fullName: "Ad Soyad",
   firstName: "Ad",
   lastName: "Soyad",
-  nationalId: "T.C. Kimlik",
+  nationalId: "Resmi Kimlik No (T.C./Pasaport/Kurum ID)",
   phone: "Telefon",
   email: "E-posta",
   birthDate: "Doğum Tarihi",
   bloodType: "Kan Grubu",
-  emergencyContact: "Acil Durum Yakını",
+  primaryLanguage: "Birincil Dili",
+  nationality: "Uyruk",
+  guardianNames: "Vasisi (Anne/Baba Adları)",
+  assistiveDeviceInfo: "Özel Protez/Cihaz Bilgisi",
+  affiliatedInstitution: "Bağlı Sağlık Kurumu / Bakımevi",
+  contagiousDiseaseInfo: "Bulaşıcı Hastalık Bilgisi",
+  physicalDescription: "Boy, Kilo, Ayırt Edici Özellikler",
+  emergencyContactName: "Acil Durum Yakını (Ad)",
+  emergencyContactPhone: "Acil Durum Yakını (Telefon)",
   allergies: "Alerjiler",
-  chronicConditions: "Kronik Rahatsızlık",
-  chronicDiseases: "Kronik Rahatsızlık",
-  medications: "Kullandığı İlaçlar",
-  notes: "Notlar",
+  medications: "Sürekli Kullanılan İlaçlar",
+  chronicHistory: "Ameliyat / Kronik Hastalık / Protez Geçmişi",
+  notes: "Diğer Notlar",
+  photo: "Vesikalık Fotoğraf",
   criticalNotes: "Kritik Not",
   lastUpdated: "Son Güncelleme"
 };
-
-// Editable profile fields, in form order. Mirrors lib/src/models/lifeband_profile.dart.
-const PROFILE_FIELDS = [
-  { key: "firstName", label: "Ad", required: true },
-  { key: "lastName", label: "Soyad", required: true },
-  { key: "nationalId", label: "T.C. Kimlik No" },
-  { key: "phone", label: "Telefon" },
-  { key: "email", label: "E-posta" },
-  { key: "birthDate", label: "Doğum Tarihi (YYYY-AA-GG)" },
-  { key: "bloodType", label: "Kan Grubu", required: true },
-  { key: "allergies", label: "Alerjiler" },
-  { key: "chronicDiseases", label: "Kronik Hastalıklar" },
-  { key: "medications", label: "Kullandığı İlaçlar" },
-  { key: "emergencyContact", label: "Acil Durum Yakını", required: true },
-  { key: "notes", label: "Notlar", multiline: true }
-];
 
 const VISIBILITY_LEVEL_LABELS = {
   private: "Gizli",
@@ -47,34 +39,63 @@ const VISIBILITY_LEVEL_LABELS = {
   staff: "Sağlık personeli"
 };
 
-// Mirrors VisibilitySettings.minimal/emergency/staffFocused in
-// lib/src/models/lifeband_profile.dart, so mobile and web templates agree.
-const VISIBILITY_TEMPLATES = {
-  minimal: {
-    fullName: "masked",
-    bloodType: "public",
-    allergies: "public",
-    emergencyContact: "public"
+// Editable profile fields, grouped into form sections. Simple text fields
+// only — repeatable list fields (ALLERGY_LIST_FIELDS) and customFields are
+// handled separately in the editor since their shape differs.
+const PROFILE_SECTIONS = [
+  {
+    title: "Kimlik Bilgileri",
+    fields: [
+      { key: "firstName", label: "Ad", required: true },
+      { key: "lastName", label: "Soyad", required: true },
+      { key: "nationalId", label: "Resmi Kimlik No (T.C./Pasaport/Kurum ID)" },
+      { key: "birthDate", label: "Doğum Tarihi (YYYY-AA-GG)" },
+      { key: "primaryLanguage", label: "Birincil Dili" },
+      { key: "nationality", label: "Uyruk" }
+    ]
   },
-  emergency: {
-    fullName: "masked",
-    bloodType: "public",
-    allergies: "public",
-    emergencyContact: "public",
-    chronicDiseases: "public",
-    medications: "staff",
-    notes: "staff"
+  {
+    title: "İletişim",
+    fields: [
+      { key: "phone", label: "Telefon" },
+      { key: "email", label: "E-posta" }
+    ]
   },
-  staffFocused: {
-    fullName: "masked",
-    bloodType: "public",
-    allergies: "public",
-    emergencyContact: "public",
-    chronicDiseases: "staff",
-    medications: "staff",
-    notes: "staff"
+  {
+    title: "Acil Durum Yakını",
+    fields: [
+      { key: "emergencyContactName", label: "Ad", required: true },
+      { key: "emergencyContactPhone", label: "Telefon", required: true }
+    ]
+  },
+  {
+    title: "Sağlık Bilgileri",
+    fields: [
+      { key: "bloodType", label: "Kan Grubu", required: true },
+      { key: "contagiousDiseaseInfo", label: "Bulaşıcı Hastalık Bilgisi" },
+      { key: "assistiveDeviceInfo", label: "Özel Protez/Cihaz Bilgisi (işitme cihazı vb.)" },
+      { key: "physicalDescription", label: "Boy, Kilo, Ayırt Edici Özellikler" }
+    ]
+  },
+  {
+    title: "Diğer",
+    fields: [
+      { key: "guardianNames", label: "Vasisi (Anne/Baba Adları)" },
+      { key: "affiliatedInstitution", label: "Bağlı Sağlık Kurumu / Bakımevi" },
+      { key: "notes", label: "Diğer Notlar", multiline: true }
+    ]
   }
-};
+];
+
+const PROFILE_FIELDS = PROFILE_SECTIONS.flatMap((section) => section.fields);
+
+// Repeatable entries: the user adds as many lines as needed (e.g. one
+// allergy or medication per line) instead of one cramped text field.
+const LIST_FIELDS = [
+  { key: "allergies", label: "Alerjiler", placeholder: "Örn. Penisilin — şiddetli, anafilaksi riski" },
+  { key: "medications", label: "Sürekli Kullanılan İlaçlar", placeholder: "Örn. İnsülin — 10 birim, sabah/akşam" },
+  { key: "chronicHistory", label: "Ameliyat / Kronik Hastalık / Protez Geçmişi", placeholder: "Örn. 2019 - Apandisit ameliyatı" }
+];
 
 const demoProfile = {
   qrId: DEMO_QR_ID,
@@ -1160,6 +1181,8 @@ async function renderUserDashboard() {
   });
 }
 
+const MAX_PHOTO_DATA_URL_LENGTH = 400_000; // keeps profiles/{uid} safely under Firestore's 1 MiB doc cap
+
 async function renderProfileEditor(qr, statusMessage = "") {
   renderLoading("Profil yükleniyor...");
 
@@ -1168,21 +1191,44 @@ async function renderProfileEditor(qr, statusMessage = "") {
     firestoreApi.getDoc(firestoreApi.doc(firestoreDb, "visibilitySettings", currentUser.uid))
   ]);
   const profile = profileSnap.exists() ? profileSnap.data() : {};
-  const visibility = visibilitySnap.exists() ? visibilitySnap.data().fields || {} : {};
+  const visibilityFields = visibilitySnap.exists() ? visibilitySnap.data().fields || {} : {};
 
-  const fieldRows = PROFILE_FIELDS.map((field) => {
-    const value = escapeAttr(profile[field.key] || "");
-    const level = visibility[field.key] || "private";
+  const draft = {
+    values: {},
+    visibility: {},
+    lists: {},
+    listDrafts: {},
+    customFields: Array.isArray(profile.customFields)
+      ? profile.customFields.map((f, i) => ({ id: f.id || `cf-${i}`, ...f }))
+      : []
+  };
+  PROFILE_FIELDS.forEach((field) => {
+    draft.values[field.key] = profile[field.key] || "";
+    draft.visibility[field.key] = visibilityFields[field.key] || "private";
+  });
+  LIST_FIELDS.forEach((field) => {
+    draft.lists[field.key] = Array.isArray(profile[field.key]) ? [...profile[field.key]] : [];
+    draft.listDrafts[field.key] = "";
+    draft.visibility[field.key] = visibilityFields[field.key] || "private";
+  });
+  draft.values.photo = profile.photo || "";
+  draft.visibility.photo = visibilityFields.photo || "private";
+
+  function visibilitySelect(id, name, level) {
     const options = Object.entries(VISIBILITY_LEVEL_LABELS)
       .map(
         ([optionValue, label]) =>
           `<option value="${optionValue}" ${optionValue === level ? "selected" : ""}>${label}</option>`
       )
       .join("");
-    const input = field.multiline
-      ? `<textarea id="field-${field.key}" name="${field.key}">${escapeHtml(profile[field.key] || "")}</textarea>`
-      : `<input id="field-${field.key}" name="${field.key}" value="${value}" ${field.required ? "required" : ""} />`;
+    return `<select id="${id}" name="${name}" class="visibility-select">${options}</select>`;
+  }
 
+  function renderSimpleField(field) {
+    const value = escapeAttr(draft.values[field.key] || "");
+    const input = field.multiline
+      ? `<textarea id="field-${field.key}" name="${field.key}">${escapeHtml(draft.values[field.key] || "")}</textarea>`
+      : `<input id="field-${field.key}" name="${field.key}" value="${value}" ${field.required ? "required" : ""} />`;
     return `
       <div class="field full">
         <div class="field-row">
@@ -1192,11 +1238,223 @@ async function renderProfileEditor(qr, statusMessage = "") {
           </div>
           <div class="field visibility-field">
             <label for="visibility-${field.key}">Görünürlük</label>
-            <select id="visibility-${field.key}" name="visibility-${field.key}">${options}</select>
+            ${visibilitySelect(`visibility-${field.key}`, `visibility-${field.key}`, draft.visibility[field.key])}
           </div>
         </div>
       </div>`;
-  }).join("");
+  }
+
+  function renderListField(field) {
+    const items = draft.lists[field.key]
+      .map(
+        (entry, index) => `
+        <li class="list-entry">
+          <span>${escapeHtml(entry)}</span>
+          <button class="icon-button danger" type="button" data-remove-list="${field.key}" data-index="${index}" title="Kaldır">×</button>
+        </li>`
+      )
+      .join("");
+    return `
+      <div class="field full">
+        <div class="field-row">
+          <div class="field">
+            <label>${escapeHtml(field.label)}</label>
+            <ul class="list-entries">${items || `<li class="muted small">Henüz girilmedi.</li>`}</ul>
+            <div class="list-add-row">
+              <input type="text" id="listdraft-${field.key}" name="listdraft-${field.key}" placeholder="${escapeAttr(field.placeholder)}" value="${escapeAttr(draft.listDrafts[field.key])}" />
+              <button class="button secondary" type="button" data-add-list="${field.key}">+ Ekle</button>
+            </div>
+          </div>
+          <div class="field visibility-field">
+            <label for="visibility-${field.key}">Görünürlük</label>
+            ${visibilitySelect(`visibility-${field.key}`, `visibility-${field.key}`, draft.visibility[field.key])}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderCustomFieldRow(field, index) {
+    return `
+      <div class="field full custom-field-row">
+        <div class="field-row">
+          <div class="field">
+            <label for="custom-label-${index}">Başlık</label>
+            <input id="custom-label-${index}" name="custom-label-${index}" value="${escapeAttr(field.label || "")}" placeholder="Örn. Evcil Hayvan Bilgisi" />
+          </div>
+          <div class="field">
+            <label for="custom-value-${index}">Değer</label>
+            <input id="custom-value-${index}" name="custom-value-${index}" value="${escapeAttr(field.value || "")}" />
+          </div>
+          <div class="field visibility-field">
+            <label for="custom-visibility-${index}">Görünürlük</label>
+            ${visibilitySelect(`custom-visibility-${index}`, `custom-visibility-${index}`, field.visibility || "private")}
+          </div>
+          <button class="icon-button danger" type="button" data-remove-custom="${index}" title="Kaldır" style="align-self:flex-end;">×</button>
+        </div>
+      </div>`;
+  }
+
+  function renderPhotoField() {
+    const preview = draft.values.photo
+      ? `<img src="${draft.values.photo}" alt="Vesikalık fotoğraf" class="photo-preview" />`
+      : `<div class="photo-preview photo-preview--empty">Fotoğraf yok</div>`;
+    return `
+      <div class="field full">
+        <div class="field-row">
+          <div class="field">
+            <label>Vesikalık Fotoğraf</label>
+            <div style="display:flex;align-items:center;gap:12px;">
+              ${preview}
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <input type="file" id="photoInput" accept="image/*" />
+                ${draft.values.photo ? `<button class="button ghost" type="button" id="removePhoto">Fotoğrafı kaldır</button>` : ""}
+              </div>
+            </div>
+          </div>
+          <div class="field visibility-field">
+            <label for="visibility-photo">Görünürlük</label>
+            ${visibilitySelect("visibility-photo", "visibility-photo", draft.visibility.photo)}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderForm() {
+    const sectionsHtml = PROFILE_SECTIONS.map(
+      (section) => `
+      <h3 class="section-heading">${escapeHtml(section.title)}</h3>
+      ${section.title === "Kimlik Bilgileri" ? renderPhotoField() : ""}
+      ${section.fields.map(renderSimpleField).join("")}`
+    ).join("");
+
+    const listsHtml = `
+      <h3 class="section-heading">Sağlık Geçmişi (çoklu giriş)</h3>
+      ${LIST_FIELDS.map(renderListField).join("")}`;
+
+    const customHtml = `
+      <h3 class="section-heading">Özel Alanlar</h3>
+      <p class="muted small">Listede olmayan bir bilgi eklemek isterseniz buradan kendi başlığınızla ekleyin, istediğiniz kadar alan ekleyebilirsiniz.</p>
+      ${draft.customFields.map(renderCustomFieldRow).join("")}
+      <div class="field full">
+        <button class="button secondary" type="button" id="addCustomField">+ Özel alan ekle</button>
+      </div>`;
+
+    const formEl = document.querySelector("#profileForm");
+    formEl.innerHTML = `
+      ${sectionsHtml}
+      ${listsHtml}
+      ${customHtml}
+      <button class="button field full" type="submit">Kaydet</button>
+    `;
+    bindFormEvents();
+  }
+
+  function syncFormIntoDraft() {
+    const form = document.querySelector("#profileForm");
+    if (!form) return;
+    const data = new FormData(form);
+    PROFILE_FIELDS.forEach((field) => {
+      draft.values[field.key] = cleanText(data.get(field.key));
+      draft.visibility[field.key] = String(data.get(`visibility-${field.key}`) || "private");
+    });
+    LIST_FIELDS.forEach((field) => {
+      draft.visibility[field.key] = String(data.get(`visibility-${field.key}`) || "private");
+      draft.listDrafts[field.key] = String(data.get(`listdraft-${field.key}`) || "");
+    });
+    draft.visibility.photo = String(data.get("visibility-photo") || "private");
+    draft.customFields.forEach((field, index) => {
+      field.label = cleanText(data.get(`custom-label-${index}`));
+      field.value = cleanText(data.get(`custom-value-${index}`));
+      field.visibility = String(data.get(`custom-visibility-${index}`) || "private");
+    });
+  }
+
+  function bindFormEvents() {
+    document.querySelectorAll("[data-add-list]").forEach((button) => {
+      button.addEventListener("click", () => {
+        syncFormIntoDraft();
+        const key = button.getAttribute("data-add-list");
+        const entry = draft.listDrafts[key].trim();
+        if (entry) {
+          draft.lists[key].push(entry);
+          draft.listDrafts[key] = "";
+        }
+        renderForm();
+      });
+    });
+
+    document.querySelectorAll("[data-remove-list]").forEach((button) => {
+      button.addEventListener("click", () => {
+        syncFormIntoDraft();
+        const key = button.getAttribute("data-remove-list");
+        const index = Number(button.getAttribute("data-index"));
+        draft.lists[key].splice(index, 1);
+        renderForm();
+      });
+    });
+
+    document.querySelector("#addCustomField")?.addEventListener("click", () => {
+      syncFormIntoDraft();
+      draft.customFields.push({ id: `cf-${Date.now()}`, label: "", value: "", visibility: "private" });
+      renderForm();
+    });
+
+    document.querySelectorAll("[data-remove-custom]").forEach((button) => {
+      button.addEventListener("click", () => {
+        syncFormIntoDraft();
+        const index = Number(button.getAttribute("data-remove-custom"));
+        draft.customFields.splice(index, 1);
+        renderForm();
+      });
+    });
+
+    document.querySelector("#photoInput")?.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const dataUrl = await resizeImageToDataUrl(file);
+        if (dataUrl.length > MAX_PHOTO_DATA_URL_LENGTH) {
+          toast("Fotoğraf hâlâ çok büyük, lütfen daha küçük bir fotoğraf deneyin.");
+          return;
+        }
+        syncFormIntoDraft();
+        draft.values.photo = dataUrl;
+        renderForm();
+      } catch (error) {
+        console.error(error);
+        toast("Fotoğraf işlenemedi.");
+      }
+    });
+
+    document.querySelector("#removePhoto")?.addEventListener("click", () => {
+      syncFormIntoDraft();
+      draft.values.photo = "";
+      renderForm();
+    });
+
+    document.querySelector("#profileForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      syncFormIntoDraft();
+
+      const newProfile = { ...draft.values };
+      const newVisibility = { ...draft.visibility };
+      LIST_FIELDS.forEach((field) => {
+        newProfile[field.key] = draft.lists[field.key];
+      });
+      newProfile.fullName = `${newProfile.firstName} ${newProfile.lastName}`.trim();
+      newVisibility.fullName = "masked";
+      newProfile.customFields = draft.customFields.filter((f) => f.label && f.value);
+
+      try {
+        await saveProfileAndVisibility(qr.qrId, newProfile, newVisibility);
+        toast("Profil kaydedildi.");
+        await renderProfileEditor({ ...qr, status: "active" }, "Profil kaydedildi.");
+      } catch (error) {
+        console.error(error);
+        toast("Kaydetme başarısız: " + error.message);
+      }
+    });
+  }
 
   app.innerHTML = `
     <main class="profile-page">
@@ -1216,15 +1474,7 @@ async function renderProfileEditor(qr, statusMessage = "") {
           Her alan için görünürlüğü siz seçersiniz: <strong>Gizli</strong> (sadece siz), <strong>Açık</strong> (QR'ı okutan herkes),
           <strong>Yarı görünür</strong> (herkese maskeli), <strong>Sağlık personeli</strong> (yalnızca onaylı personel).
         </p>
-        <div class="template-row">
-          <button class="button ghost" type="button" data-template="minimal">Minimal şablon</button>
-          <button class="button ghost" type="button" data-template="emergency">Acil durum şablonu</button>
-          <button class="button ghost" type="button" data-template="staffFocused">Personel odaklı şablon</button>
-        </div>
-        <form id="profileForm" class="form-grid">
-          ${fieldRows}
-          <button class="button field full" type="submit">Kaydet</button>
-        </form>
+        <form id="profileForm" class="form-grid"></form>
       </section>
     </main>
   `;
@@ -1235,38 +1485,28 @@ async function renderProfileEditor(qr, statusMessage = "") {
     await render();
   });
 
-  document.querySelectorAll("[data-template]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const template = VISIBILITY_TEMPLATES[button.getAttribute("data-template")] || {};
-      PROFILE_FIELDS.forEach((field) => {
-        const select = document.querySelector(`#visibility-${field.key}`);
-        if (!select) return;
-        select.value = template[field.key] || "private";
-      });
-      toast("Şablon uygulandı. Kaydetmeyi unutmayın.");
-    });
-  });
+  renderForm();
+}
 
-  document.querySelector("#profileForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const newProfile = {};
-    const newVisibility = {};
-    PROFILE_FIELDS.forEach((field) => {
-      newProfile[field.key] = cleanText(form.get(field.key));
-      newVisibility[field.key] = String(form.get(`visibility-${field.key}`) || "private");
-    });
-    newProfile.fullName = `${newProfile.firstName} ${newProfile.lastName}`.trim();
-    newVisibility.fullName = newVisibility.fullName || "masked";
-
-    try {
-      await saveProfileAndVisibility(qr.qrId, newProfile, newVisibility);
-      toast("Profil kaydedildi.");
-      await renderProfileEditor({ ...qr, status: "active" }, "Profil kaydedildi.");
-    } catch (error) {
-      console.error(error);
-      toast("Kaydetme başarısız: " + error.message);
-    }
+function resizeImageToDataUrl(file, maxSize = 220, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Görsel okunamadı"));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   });
 }
 
@@ -1281,6 +1521,8 @@ async function saveProfileAndVisibility(qrId, profile, visibility) {
       activatedAt: firestoreApi.serverTimestamp()
     });
   }
+
+  const customFields = Array.isArray(profile.customFields) ? profile.customFields : [];
 
   await firestoreApi.setDoc(
     firestoreApi.doc(firestoreDb, "profiles", uid),
@@ -1298,6 +1540,7 @@ async function saveProfileAndVisibility(qrId, profile, visibility) {
       qrId,
       ownerUid: uid,
       displayFields: compileDisplayFields(profile, visibility, "public"),
+      customDisplayFields: compileCustomDisplayFields(customFields, "public"),
       visibility,
       updatedAt: firestoreApi.serverTimestamp()
     },
@@ -1309,6 +1552,7 @@ async function saveProfileAndVisibility(qrId, profile, visibility) {
       qrId,
       ownerUid: uid,
       displayFields: compileDisplayFields(profile, visibility, "staff"),
+      customDisplayFields: compileCustomDisplayFields(customFields, "staff"),
       updatedAt: firestoreApi.serverTimestamp()
     },
     { merge: true }
@@ -1603,15 +1847,17 @@ async function renderFirebaseQrProfile(qrId) {
         return;
       }
 
-      const displayFields =
-        profileDoc.displayFields ||
-        compileDisplayFields(
-          profileDoc.fields || {},
-          profileDoc.visibility || {},
-          staffMode ? "staff" : "public"
-        );
+      const displayFields = {
+        ...(profileDoc.displayFields ||
+          compileDisplayFields(
+            profileDoc.fields || {},
+            profileDoc.visibility || {},
+            staffMode ? "staff" : "public"
+          )),
+        ...(profileDoc.customDisplayFields || {})
+      };
       void logAccess(qrId, staffMode ? "staff" : "public");
-      renderProfileCard(qrId, "Acil Sağlık Profili", displayFields, staffMode);
+      renderProfileCard(qrId, "Acil Sağlık Profili", displayFields, staffMode, false, profileDoc.updatedAt);
       return;
     }
 
@@ -1765,7 +2011,8 @@ function bindClaimForm(qrId) {
   });
 }
 
-function renderProfileCard(qrId, title, displayFields, staffMode = false, incomplete = false) {
+function renderProfileCard(qrId, title, displayFields, staffMode = false, incomplete = false, updatedAt = null) {
+  const photoUrl = displayFields.photo;
   app.innerHTML = `
     <main class="profile-page">
       <div class="profile-head">
@@ -1784,6 +2031,7 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false, incomp
           }
         </div>
         <div class="card-header">
+          ${photoUrl ? `<img src="${photoUrl}" alt="Vesikalık fotoğraf" class="photo-preview" />` : ""}
           <div>
             <h2>${escapeHtml(displayName(displayFields, firebaseReady ? {} : demoProfile.fields))}</h2>
             <p class="muted small">QR: ${escapeHtml(qrId)}</p>
@@ -1793,8 +2041,9 @@ function renderProfileCard(qrId, title, displayFields, staffMode = false, incomp
           Acil durumda bu bilgiler hastanın belirlediği görünürlük ayarlarına göre gösterilir.
         </div>
         <dl class="info-list">
-          ${renderInfoItems(omitKeys(displayFields, ["fullName", "firstName", "lastName"]))}
+          ${renderInfoItems(omitKeys(displayFields, ["fullName", "firstName", "lastName", "photo"]))}
         </dl>
+        ${updatedAt ? `<p class="muted small">Son güncelleme: ${formatDate(updatedAt)}</p>` : ""}
         ${
           !firebaseReady
             ? `

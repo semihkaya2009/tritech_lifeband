@@ -26,3 +26,12 @@ assert.deepEqual(fields, {
   bloodType: "A Rh+",
   nationalId: "12*******01"
 });
+
+const listFields = compileDisplayFields(
+  { allergies: ["Penisilin", "  ", "Arı sokması"] },
+  { allergies: "public" },
+  "public"
+);
+assert.deepEqual(listFields, { allergies: "Penisilin; Arı sokması" });
+
+console.log("All visibility.js tests passed.");

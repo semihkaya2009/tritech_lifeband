@@ -2,7 +2,9 @@ export function compileDisplayFields(profile, settings = {}, mode = "public") {
   const displayFields = {};
 
   for (const [key, rawValue] of Object.entries(profile || {})) {
-    const value = String(rawValue ?? "").trim();
+    const value = Array.isArray(rawValue)
+      ? rawValue.map((entry) => String(entry ?? "").trim()).filter(Boolean).join("; ")
+      : String(rawValue ?? "").trim();
     if (!value) continue;
 
     const level = settings[key] || "private";
@@ -12,7 +14,9 @@ export function compileDisplayFields(profile, settings = {}, mode = "public") {
     }
 
     if (level === "masked") {
-      displayFields[key] = maskField(key, value);
+      // A masked photo makes no sense (there's no partial-reveal for an
+      // image); show it in full whenever it's visible at all.
+      displayFields[key] = key === "photo" ? value : maskField(key, value);
       continue;
     }
 
@@ -22,6 +26,28 @@ export function compileDisplayFields(profile, settings = {}, mode = "public") {
   }
 
   return displayFields;
+}
+
+// Custom fields have a user-typed label instead of a fixed key, so they
+// can't go through compileDisplayFields (which looks keys up by a fixed
+// schema). Returns a {label: value} map keyed by the label itself.
+export function compileCustomDisplayFields(customFields, mode = "public") {
+  const result = {};
+  (customFields || []).forEach((field) => {
+    const label = String(field?.label ?? "").trim();
+    const value = String(field?.value ?? "").trim();
+    if (!label || !value) return;
+
+    const level = field?.visibility || "private";
+    if (level === "public") {
+      result[label] = value;
+    } else if (level === "masked") {
+      result[label] = maskField("generic", value);
+    } else if (level === "staff" && mode === "staff") {
+      result[label] = value;
+    }
+  });
+  return result;
 }
 
 export function maskField(fieldKey, value) {
