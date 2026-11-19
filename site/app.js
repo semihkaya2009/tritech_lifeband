@@ -961,6 +961,11 @@ async function renderUserAuthPortal(errorMessage = "", mode = "login", role = "u
       } else {
         await firebaseAuthApi.signInWithEmailAndPassword(firebaseAuth, email, password);
       }
+      // Attach any QR claimed with this email regardless of which tab
+      // (Kullanıcı/Personel/Admin) was used to sign in — not just the
+      // 'user' destination, which only happened to trigger it because
+      // /panelim's own loader calls this too.
+      await attachClaimedQrsForCurrentUser();
       navigateTo(ROLE_TABS[activeTab].redirect);
     } catch (error) {
       renderUserAuthPortal(authError(error, "Giriş yapılamadı."), effectiveMode, activeTab);
@@ -985,6 +990,7 @@ async function renderAccount() {
   }
 
   renderLoading("Hesap bilgileri yükleniyor...");
+  await attachClaimedQrsForCurrentUser();
   const [isAdmin, staffDoc, qrCodes] = await Promise.all([
     isCurrentSystemAdmin(),
     getCurrentMedicalStaffDoc(),
